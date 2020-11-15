@@ -1,5 +1,12 @@
 # name=Arturia Keylab mkII
+import channels
 import device
+import general
+import midi
+import mixer
+import playlist
+import ui
+import transport
 
 # Enable to print debugging log
 _DEBUG = True
@@ -154,7 +161,7 @@ LED_ID_MAP = {
     'select6': 39,
     'select7': 40,
     'select8': 41,
-    'master': 42,
+    'select0': 42,  # This is the master/multi button
 
     # Track controls
     'solo': 96,
@@ -215,9 +222,9 @@ def _get_led_state(led_id):
     return _led_state[led_id] if led_id in _led_state else False
 
 
-def _log(tag, message, event):
+def _log(tag, message, event=None):
     if _DEBUG:
-        event_str = _event_as_string(event)
+        event_str = _event_as_string(event) if event is not None else ''
         print('[%s] %s %s' % (tag, message, event_str))
 
 
@@ -238,6 +245,15 @@ def _encode_display_line(line):
 
 
 def _set_display(line1=None, line2=None):
+    """ Update the Display panel on the keyboard.
+
+    The display consists of two 16-char lines. The user can specify a specific line to update. If no line is provided,
+    then the previously displayed line (set by this method) will be preserved. If the line exceeds 16 chars, then the
+    line is truncated to display the first 16-chars. TODO: Support scrolling text.
+
+    :param line1:  first line to display or None to preserve the text on first line.
+    :param line2:  second line to display or None to preserve the text on first line.
+    """
     global _display_line1
     global _display_line2
 
@@ -280,6 +296,9 @@ def _get_knob_delta(event):
     return value if value < 64 else 64 - value
 
 
+def _is_channel_mode():
+    return transport.getLoopMode() == 0
+
 # Handles processing a midi event corresponding to a knob event.
 def _handle_knob_event(event):
     if event.data1 in KNOB_HANDLER_MAP:
@@ -288,16 +307,39 @@ def _handle_knob_event(event):
         _log('ERROR', "Unhandled knob %d" % event.data1, event)
 
 
+def _set_selected_track(track_id):
+    for i in range(9):
+        button_id = 'select%d' % i
+        _set_lights(LED_ID_MAP[button_id], i == track_id)
+
+
+def _sync_state_from_daw():
+    _set_lights(LED_ID_MAP['rec'], transport.isRecording())
+    _set_lights(LED_ID_MAP['loop'], ui.isLoopRecEnabled())
+    _set_lights(LED_ID_MAP['metro'], ui.isMetronomeEnabled())
+    _set_lights(LED_ID_MAP['save'], transport.getLoopMode() == 1)
+    _set_lights(LED_ID_MAP['undo'], general.getUndoHistoryLast() == 0)
+    if _is_channel_mode():
+        _set_selected_track(channels.selectedChannel() + 1)
+    else:
+        _set_selected_track(mixer.trackNumber())
+
+
 def _on_transports_back(event):
     _log('TransportsBack', 'Event dispatched', event)
+    # TODO: need to be able to process release event here
+    transport.globalTransport(midi.FPT_Left, 42)
 
 
 def _on_transports_forward(event):
     _log('TransportsForward', 'Event dispatched', event)
+    # TODO: need to be able to process release event here
+    transport.globalTransport(midi.FPT_Right, 43)
 
 
 def _on_transports_stop(event):
     _log('TransportsStop', 'Event dispatched', event)
+    transport.stop()
 
 
 def _on_transports_pause_play(event):
@@ -314,30 +356,54 @@ def _on_transports_loop(event):
 
 def _on_global_save(event):
     _log('GlobalSave', 'Event dispatched', event)
+    # Toggle pattern/song mode.
+    transport.setLoopMode()
 
 
 def _on_global_in(event):
     _log('GlobalIn', 'Event dispatched', event)
+    transport.globalTransport(midi.FPT_PunchIn, 31)
 
 
 def _on_global_out(event):
     _log('GlobalOut', 'Event dispatched', event)
+    transport.globalTransport(midi.FPT_PunchOut, 32)
 
 
 def _on_global_metro(event):
     _log('GlobalMetro', 'Event dispatched', event)
+    transport.globalTransport(midi.FPT_Metronome, 110)
 
 
 def _on_global_undo(event):
     _log('GlobalUndo', 'Event dispatched', event)
+    transport.globalTransport(midi.FPT_Undo, 20)
 
 
 def _on_track_solo(event, track):
     _log('TrackSolo%d' % track, 'Event dispatched', event)
 
+    # The specific channel might be out of sync with FL Studio. So need to dynamically fetch the active channel/track
+    if _is_channel_mode():
+        track = channels.selectedChannel()
+        channels.soloChannel(track)
+    else:
+        track = mixer.trackNumber()
+        mixer.soloTrack(track)
+
+
 
 def _on_track_mute(event, track):
     _log('TrackMute%d' % track, 'Event dispatched', event)
+
+    # The specific channel might be out of sync with FL Studio. So need to dynamically fetch the active channel/track
+    if _is_channel_mode():
+        track = channels.selectedChannel()
+        channels.muteChannel(track)
+    else:
+        track = mixer.trackNumber()
+        mixer.muteTrack(track)
+
 
 
 def _on_track_record(event, track):
@@ -460,6 +526,7 @@ def OnProgramChange(event):
 
 def OnRefresh(event):
     print('OnRefresh')
+    _sync_state_from_daw()
 
 
 def OnUpdateBeatIndicator(event):
