@@ -18,6 +18,9 @@ _DEBUG_LEDS = False
 MIDI_ON = 127
 MIDI_OFF = 0
 
+SS_STOP = 0
+SS_START = 2
+
 def _log(tag, message, event=None):
     """Log out message if global _DEBUG variable is True."""
     if _DEBUG:
@@ -337,14 +340,19 @@ class ArturiaController:
         name = channels.getChannelName(active_index)
         volume = int(channels.getChannelVolume(active_index) * 100)
         pan = int(channels.getChannelPan(active_index) * 100)
-        self._display.SetLines(line1='Ch%d: %s' % (active_index + 1, name), line2='Vol:%d Pan:%d' % (volume, pan))
+        self._display.SetLines(line1='[%d] %s' % (active_index + 1, name), line2='Vol:%d Pan:%d' % (volume, pan))
 
 
 class ArturiaMidiProcessor:
+
+    @staticmethod
+    def _is_pressed(event):
+        return event.controlVal != 0
+
     def __init__(self, controller):
         def by_midi_id(event): return event.midiId
         def by_control_num(event): return event.controlNum
-        def ignore_release(event): return event.controlVal != 0
+        def ignore_release(event): return self._is_pressed(event)
 
         self._controller = controller
 
@@ -430,16 +438,35 @@ class ArturiaMidiProcessor:
         delta = self._get_knob_delta(event)
         _log('OnPanKnobTurned', 'Knob %d Delta = %d' % (idx, delta), event=event)
 
-    def OnTransportsBack(self, event): _log('OnTransportsBack', 'Dispatched', event=event)
-    def OnTransportsForward(self, event): _log('OnTransportsForward', 'Dispatched', event=event)
+    def OnTransportsBack(self, event):
+        _log('OnTransportsBack', 'Dispatched', event=event)
+        if self._is_pressed(event):
+            transport.rewind(SS_START)
+        else:
+            transport.rewind(SS_STOP)
+
+    def OnTransportsForward(self, event):
+        _log('OnTransportsForward', 'Dispatched', event=event)
+        if self._is_pressed(event):
+            transport.fastForward(SS_START)
+        else:
+            transport.fastForward(SS_STOP)
 
     def OnTransportsStop(self, event):
         _log('OnTransportsStop', 'Dispatched', event=event)
         transport.stop()
 
-    def OnTransportsPausePlay(self, event): _log('OnTransportsPausePlay', 'Dispatched', event=event)
-    def OnTransportsRecord(self, event): _log('OnTransportsRecord', 'Dispatched', event=event)
-    def OnTransportsLoop(self, event): _log('OnTransportsLoop', 'Dispatched', event=event)
+    def OnTransportsPausePlay(self, event):
+        _log('OnTransportsPausePlay', 'Dispatched', event=event)
+        transport.globalTransport(midi.FPT_Play, midi.FPT_Play, event.pmeFlags)
+
+    def OnTransportsRecord(self, event):
+        _log('OnTransportsRecord', 'Dispatched', event=event)
+        transport.record()
+
+    def OnTransportsLoop(self, event):
+        _log('OnTransportsLoop', 'Dispatched', event=event)
+        transport.globalTransport(midi.FPT_Loop, midi.FPT_Loop, event.pmeFlags)
 
     def OnGlobalSave(self, event):
         _log('OnGlobalSave', 'Dispatched', event=event)
@@ -447,19 +474,19 @@ class ArturiaMidiProcessor:
 
     def OnGlobalIn(self, event):
         _log('OnGlobalIn', 'Dispatched', event=event)
-        transport.globalTransport(midi.FPT_PunchIn, 31)
+        transport.globalTransport(midi.FPT_PunchIn, midi.FPT_PunchIn, event.pmeFlags)
 
     def OnGlobalOut(self, event):
         _log('OnGlobalOut', 'Dispatched', event=event)
-        transport.globalTransport(midi.FPT_PunchOut, 32)
+        transport.globalTransport(midi.FPT_PunchOut, midi.FPT_PunchOut, event.pmeFlags)
 
     def OnGlobalMetro(self, event):
         _log('OnGlobalMetro', 'Dispatched', event=event)
-        transport.globalTransport(midi.FPT_Metronome, 110)
+        transport.globalTransport(midi.FPT_Metronome, midi.FPT_Metronome, event.pmeFlags)
 
     def OnGlobalUndo(self, event):
         _log('OnGlobalUndo', 'Dispatched', event=event)
-        transport.globalTransport(midi.FPT_Undo, 20)
+        transport.globalTransport(midi.FPT_Undo, midi.FPT_Undo, event.pmeFlags)
 
     def OnTrackSolo(self, event):
         _log('OnTrackSolo', 'Dispatched', event=event)
