@@ -4,6 +4,7 @@ import device
 import general
 import midi
 import mixer
+import patterns
 import ui
 import time
 import transport
@@ -386,10 +387,14 @@ class ArturiaController:
         self._lights.SetBankLights(bank_lights)
 
         # Update display
-        name = channels.getChannelName(active_index)
-        volume = int(channels.getChannelVolume(active_index) * 100)
-        pan = int(channels.getChannelPan(active_index) * 100)
-        self._display.SetLines(line1='[%d] %s' % (active_index + 1, name), line2='Vol:%d Pan:%d' % (volume, pan))
+        channel_name = channels.getChannelName(active_index)
+        pattern_number = patterns.patternNumber()
+        pattern_name = patterns.getPatternName(pattern_number)
+        #volume = int(channels.getChannelVolume(active_index) * 100)
+        #pan = int(channels.getChannelPan(active_index) * 100)
+        self._display.SetLines(
+            line1='[%d:%d] %s' % (active_index + 1, pattern_number, channel_name),
+            line2='%s' % pattern_name)
 
 
 class ArturiaMidiProcessor:
@@ -546,9 +551,28 @@ class ArturiaMidiProcessor:
         _log('OnTrackMute', 'Dispatched', event=event)
         channels.muteChannel(channels.selectedChannel())
 
-    def OnTrackRecord(self, event): _log('OnTrackRecord', 'Dispatched', event=event)
-    def OnTrackRead(self, event): _log('OnTrackRead', 'Dispatched', event=event)
-    def OnTrackWrite(self, event): _log('OnTrackWrite', 'Dispatched', event=event)
+    def OnTrackRecord(self, event):
+        _log('OnTrackRecord', 'Dispatched', event=event)
+        pattern_id = patterns.patternCount() + 1
+        patterns.setPatternName(pattern_id, 'Pattern %d' % pattern_id)
+        patterns.jumpToPattern(pattern_id)
+        patterns.selectPattern(pattern_id, 1)
+
+    def OnTrackRead(self, event):
+        _log('OnTrackRead', 'Dispatched', event=event)
+        # Move to previous pattern (move up pattern list)
+        prev = patterns.patternNumber() - 1
+        if prev <= 0:
+            return
+        patterns.jumpToPattern(prev)
+
+    def OnTrackWrite(self, event):
+        _log('OnTrackWrite', 'Dispatched', event=event)
+        # Move to next pattern (move down pattern list)
+        next = patterns.patternNumber() + 1
+        if next > patterns.patternCount():
+            return
+        patterns.jumpToPattern(next)
 
     def OnNavigationLeft(self, event): _log('OnNavigationLeft', 'Dispatched', event=event)
     def OnNavigationRight(self, event): _log('OnNavigationRight', 'Dispatched', event=event)
