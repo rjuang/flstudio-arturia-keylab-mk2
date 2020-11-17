@@ -9,8 +9,8 @@ You can simply clone this project into the folder:
 ``` 
 Documents/Image-Line/FL Studio/Settings/Hardware/
 ```
-Then in FL Studio, goto `Options->Midi Settings` and select your Arturia device under `Input`
-section. Click the `Controller type` drop down and select `Arturia Keylab mkII`.
+Then in FL Studio, goto `Options->Midi Settings` and select your Arturia device (the DAW one) under
+`Input` section. Click the `Controller type` drop down and select `Arturia Keylab mkII`.
 
 
 ## What's Done
@@ -24,5 +24,5 @@ it will scroll the text repeatedly.
  light up when solo/mute.
 - Setup basic framework for setting multiple LEDs.
 - Setup basic syncing between FL Studio UI state and keyboard. 
-
+- Save button corresponds to toggling Pattern/Song playback mode. Glowing LED means Song mode.
 
