@@ -33,6 +33,9 @@ def _event_as_string(event):
         event.midiId, event.status, event.controlNum, event.controlVal, event.data1, event.data2)
 
 
+def _onoff_byte(is_on):
+    return MIDI_ON if is_on else MIDI_OFF
+
 class MidiEventDispatcher:
     """ Dispatches a MIDI event after feeding it through a transform function.
 
@@ -301,10 +304,54 @@ class ArturiaDisplay:
         return self
 
 
+class VisualMetronome:
+    def __init__(self, lights):
+        self._beat_count = 0
+        self._bar_count = -1  # First beat is always a bar, so this needs to get incremented to 0
+        self._lights = lights
+
+    def Reset(self):
+        self._beat_count = 0
+        self._bar_count = -1
+        # Also turn off all lights
+        self._lights.SetPadLights(self._zero_matrix())
+        self._lights.SetLights({
+            ArturiaLights.ID_TRANSPORTS_REWIND: MIDI_OFF,
+            ArturiaLights.ID_TRANSPORTS_FORWARD: MIDI_OFF,
+        })
+
+    @staticmethod
+    def _zero_matrix():
+        return [[0]*4 for _ in range(4)]
+
+    def ProcessBeat(self, value):
+        lights = self._zero_matrix()
+        if value == 2:
+            # Indicates regular beat
+            self._beat_count += 1
+
+        if value == 1:
+            # Indicates beat at a bar
+            self._beat_count = 0
+            self._bar_count += 1
+
+        if value != 0:
+            row = self._bar_count % 4
+            col = self._beat_count % 4
+            lights[row][col] = MIDI_ON
+            two_step = self._beat_count % 2 == 0
+            self._lights.SetPadLights(lights)
+            self._lights.SetLights({
+                ArturiaLights.ID_TRANSPORTS_REWIND: _onoff_byte(two_step),
+                ArturiaLights.ID_TRANSPORTS_FORWARD: _onoff_byte(not two_step),
+            })
+
+
 class ArturiaController:
     def __init__(self):
         self._display = ArturiaDisplay()
         self._lights = ArturiaLights()
+        self._metronome = VisualMetronome(self._lights)
 
     def display(self):
         return self._display
@@ -312,21 +359,23 @@ class ArturiaController:
     def lights(self):
         return self._lights
 
-    def _onoff_byte(self, is_on):
-        return MIDI_ON if is_on else MIDI_OFF
+    def metronome(self):
+        return self._metronome
 
     def Sync(self):
         """ Syncs up all visual indicators on keyboard with changes from FL Studio. """
         # Update buttons
         active_index = channels.selectedChannel()
         led_map = {
-            ArturiaLights.ID_TRANSPORTS_RECORD: self._onoff_byte(transport.isRecording()),
-            ArturiaLights.ID_TRANSPORTS_LOOP: self._onoff_byte(ui.isLoopRecEnabled()),
-            ArturiaLights.ID_GLOBAL_METRO: self._onoff_byte(ui.isMetronomeEnabled()),
-            ArturiaLights.ID_GLOBAL_SAVE: self._onoff_byte(transport.getLoopMode() == 1),
-            ArturiaLights.ID_GLOBAL_UNDO: self._onoff_byte(general.getUndoHistoryLast() == 0),
-            ArturiaLights.ID_TRACK_SOLO: self._onoff_byte(channels.isChannelSolo(active_index)),
-            ArturiaLights.ID_TRACK_MUTE: self._onoff_byte(channels.isChannelMuted(active_index)),
+            ArturiaLights.ID_TRANSPORTS_RECORD: _onoff_byte(transport.isRecording()),
+            ArturiaLights.ID_TRANSPORTS_LOOP: _onoff_byte(ui.isLoopRecEnabled()),
+            ArturiaLights.ID_GLOBAL_METRO: _onoff_byte(ui.isMetronomeEnabled()),
+            ArturiaLights.ID_GLOBAL_SAVE: _onoff_byte(transport.getLoopMode() == 1),
+            ArturiaLights.ID_GLOBAL_UNDO: _onoff_byte(general.getUndoHistoryLast() == 0),
+            ArturiaLights.ID_TRACK_SOLO: _onoff_byte(channels.isChannelSolo(active_index)),
+            ArturiaLights.ID_TRACK_MUTE: _onoff_byte(channels.isChannelMuted(active_index)),
+            ArturiaLights.ID_TRANSPORTS_STOP: _onoff_byte(not transport.isPlaying()),
+            ArturiaLights.ID_TRANSPORTS_PLAY: _onoff_byte(transport.getSongPos() > 0),
         }
         self._lights.SetLights(led_map)
 
@@ -454,6 +503,7 @@ class ArturiaMidiProcessor:
 
     def OnTransportsStop(self, event):
         _log('OnTransportsStop', 'Dispatched', event=event)
+        self._controller.metronome().Reset()
         transport.stop()
 
     def OnTransportsPausePlay(self, event):
@@ -466,7 +516,7 @@ class ArturiaMidiProcessor:
 
     def OnTransportsLoop(self, event):
         _log('OnTransportsLoop', 'Dispatched', event=event)
-        transport.globalTransport(midi.FPT_Loop, midi.FPT_Loop, event.pmeFlags)
+        transport.globalTransport(midi.FPT_LoopRecord, midi.FPT_LoopRecord, event.pmeFlags)
 
     def OnGlobalSave(self, event):
         _log('OnGlobalSave', 'Dispatched', event=event)
@@ -547,11 +597,11 @@ def OnProgramChange(event):
     print('OnProgramChange')
 
 
-def OnRefresh(event):
-    print('OnRefresh')
+def OnRefresh(flags):
+    print('OnRefresh %d' % flags)
     _controller.Sync()
-    #_sync_state_from_daw()
 
 
-def OnUpdateBeatIndicator(event):
-    print('OnUpdateBeatIndicator')
+def OnUpdateBeatIndicator(value):
+    print('OnUpdateBeatIndicator %d' % value)
+    _controller.metronome().ProcessBeat(value)
