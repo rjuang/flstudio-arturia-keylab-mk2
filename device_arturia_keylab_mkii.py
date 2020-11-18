@@ -223,6 +223,42 @@ class ArturiaLights:
         _send_to_device(ArturiaLights.SET_COLOR_COMMAND + data)
 
 
+class ArturiaPagedDisplay:
+    def __init__(self, display):
+        self._display = display
+        # Mapping of page name string to line 1 string for that page.
+        self._line1 = {}
+        # Mapping of page name string to line 2 string for that page.
+        self._line2 = {}
+        # Active page to display or None if no pages to display.
+        self._active_page = None
+
+    def SetPageLines(self, page_name, line1=None, line2=None):
+        if line1 is not None:
+            self._line1[page_name] = line1
+        if line2 is not None:
+            self._line2[page_name] = line2
+        if self._active_page == page_name:
+            self._update_display()
+
+    def SetActivePage(self, page_name):
+        self._active_page = page_name
+        self._update_display()
+
+    def display(self):
+        return self._display
+
+    def _update_display(self):
+        if self._active_page is not None:
+            line1 = None
+            line2 = None
+            if self._active_page in self._line1:
+                line1 = self._line1[self._active_page]
+            if self._active_page in self._line2:
+                line2 = self._line2[self._active_page]
+            self._display.SetLines(line1=line1, line2=line2)
+
+
 class ArturiaDisplay:
     """ Manages scrolling display of two lines so that long strings can be scrolled on each line. """
     def __init__(self):
@@ -230,6 +266,13 @@ class ArturiaDisplay:
         self._line1 = ' '
         # Holds the text to display on second line. May exceed the 16-char display limit.
         self._line2 = ' '
+
+        # Holds ephemeral text that will expire after the expiration timestamp. These lines will display if the
+        # the expiration timestamp is > current timestamp.
+        self._ephemeral_line1 = ' '
+        self._ephemeral_line2 = ' '
+        self._expiration_time_ms = 0
+
         # Holds the starting offset of where the line1 text should start.
         self._line1_display_offset = 0
         # Holds the starting offset of where the line2 text should start.
@@ -247,21 +290,27 @@ class ArturiaDisplay:
         # Get up to 16-bytes the exact chars to display for line 1. Also increment the scroll position by 1.
         start_pos = self._line1_display_offset
         end_pos = start_pos + 16
-        if end_pos >= len(self._line1) + self._end_padding or len(self._line1) <= 16:
+        line_src = self._line1
+        if self._expiration_time_ms > self._get_time_ms():
+            line_src = self._ephemeral_line1
+        if end_pos >= len(line_src) + self._end_padding or len(line_src) <= 16:
             self._line1_display_offset = 0
         else:
             self._line1_display_offset += 1
-        return bytearray(self._line1[start_pos:end_pos], 'ascii')
+        return bytearray(line_src[start_pos:end_pos], 'ascii')
 
     def _get_line2_bytes(self):
         # Get up to 16-bytes the exact chars to display for line 2. Also increment the scroll position by 1.
         start_pos = self._line2_display_offset
         end_pos = start_pos + 16
-        if end_pos >= len(self._line2) + self._end_padding or len(self._line2) <= 16:
+        line_src = self._line2
+        if self._expiration_time_ms > self._get_time_ms():
+            line_src = self._ephemeral_line2
+        if end_pos >= len(line_src) + self._end_padding or len(line_src) <= 16:
             self._line2_display_offset = 0
         else:
             self._line2_display_offset += 1
-        return bytearray(self._line2[start_pos:end_pos], 'ascii')
+        return bytearray(line_src[start_pos:end_pos], 'ascii')
 
     @staticmethod
     def _get_time_ms():
@@ -283,18 +332,30 @@ class ArturiaDisplay:
         """ Sets the minimum time elapsed before next refresh. """
         self._refresh_interval_ms = min_interval_ms
 
-    def SetLines(self, line1=None, line2=None):
+    def SetLines(self, line1=None, line2=None, expires=None):
         """ Update lines on the display, or leave alone if not provided.
 
-        :param line1:  first line to update display with or None to leave as is.
-        :param line2:  second line to update display with or None to leave as is.
+        :param line1:    first line to update display with or None to leave as is.
+        :param line2:    second line to update display with or None to leave as is.
+        :param expires:  number of milliseconds that the line persists before expiring. Note that when an expiration
+            interval is provided, lines are interpreted as a blank line if not provided.
         """
-        if line1 is not None:
-            self._line1 = line1
-            self._line1_display_offset = 0
-        if line2 is not None:
-            self._line2 = line2
-            self._line2_display_offset = 0
+        if expires is None:
+            if line1 is not None:
+                self._line1 = line1
+                self._line1_display_offset = 0
+            if line2 is not None:
+                self._line2 = line2
+                self._line2_display_offset = 0
+        else:
+            self._expiration_time_ms = self._get_time_ms() + expires
+            if line1 is not None:
+                self._ephemeral_line1 = line1
+                self._line1_display_offset = 0
+            if line2 is not None:
+                self._ephemeral_line2 = line2
+                self._line2_display_offset = 0
+
         self._refresh_display()
         return self
 
@@ -348,9 +409,45 @@ class VisualMetronome:
             })
 
 
+class NavigationMode:
+    def __init__(self, _display):
+        self._display = _display
+        self._modes = []
+        self._active_index = 0
+
+    def AddMode(self, name, update_fn, line_fn):
+        self._modes.append((name, update_fn, line_fn))
+        return self
+
+    def PreviousMode(self):
+        self._active_index -= 1
+        if self._active_index < 0:
+            self._active_index = len(self._modes) - 1
+        self._refresh()
+
+    def NextMode(self):
+        self._active_index += 1
+        if self._active_index >= len(self._modes):
+            self._active_index = 0
+        self._refresh()
+
+    def UpdateValue(self, delta):
+        if self._active_index >= len(self._modes):
+            return
+        self._modes[self._active_index][1](delta)
+        self._refresh()
+
+    def _refresh(self):
+        if self._active_index >= len(self._modes):
+            return
+        name, _, line_fn = self._modes[self._active_index]
+        self._display.SetLines(line1=name, line2=line_fn(), expires=1500)
+
+
 class ArturiaController:
     def __init__(self):
         self._display = ArturiaDisplay()
+        self._paged_display = ArturiaPagedDisplay(self._display)
         self._lights = ArturiaLights()
         self._metronome = VisualMetronome(self._lights)
 
@@ -362,6 +459,9 @@ class ArturiaController:
 
     def metronome(self):
         return self._metronome
+
+    def paged_display(self):
+        return self._paged_display
 
     def Sync(self):
         """ Syncs up all visual indicators on keyboard with changes from FL Studio. """
@@ -398,7 +498,6 @@ class ArturiaController:
 
 
 class ArturiaMidiProcessor:
-
     @staticmethod
     def _is_pressed(event):
         return event.controlVal != 0
@@ -456,7 +555,35 @@ class ArturiaMidiProcessor:
             .SetHandler(60, self.OnNavigationKnobTurned)
         )
 
+        def get_volume_line(): return '    %d%%' % int(channels.getChannelVolume(channels.selectedChannel()) * 100)
+        def get_panning_line(): return '    %d%%' % int(channels.getChannelPan(channels.selectedChannel()) * 100)
+        def get_pitch_line(): return '    %d%%' % int (channels.getChannelPitch(channels.selectedChannel()) * 100)
+
+        self._navigation = (
+            NavigationMode(self._controller.display())
+            .AddMode('Volume', self.OnUpdateVolume, get_volume_line)
+            .AddMode('Panning', self.OnUpdatePanning, get_panning_line)
+            .AddMode('Pitch', self.OnUpdatePitch, get_pitch_line)
+        )
         self._debug_value = 0
+
+    def clip(self, low, high, x):
+        return max(low, min(high, x))
+
+    def OnUpdateVolume(self, delta):
+        channel = channels.selectedChannel()
+        volume = self.clip(0., 1., channels.getChannelVolume(channels.selectedChannel()) + (delta / 100.0))
+        channels.setChannelVolume(channel, volume)
+
+    def OnUpdatePanning(self, delta):
+        channel = channels.selectedChannel()
+        pan = self.clip(-1., 1., channels.getChannelPan(channel) + (delta / 100.0))
+        channels.setChannelPan(channel, pan)
+
+    def OnUpdatePitch(self, delta):
+        channel = channels.selectedChannel()
+        pan = self.clip(-1., 1., channels.getChannelPitch(channel) + (delta / 100.0))
+        channels.setChannelPitch(channel, pan)
 
     def ProcessEvent(self, event):
         return self._midi_id_dispatcher.Dispatch(event)
@@ -486,6 +613,7 @@ class ArturiaMidiProcessor:
             _log('LED', 'Value=%d' % self._debug_value, event=event)
 
         _log('OnNavigationKnob', 'Delta = %d' % delta, event=event)
+        self._navigation.UpdateValue(delta)
 
     def OnPanKnobTurned(self, event):
         idx = event.controlNum - 16
@@ -574,8 +702,14 @@ class ArturiaMidiProcessor:
             return
         patterns.jumpToPattern(next)
 
-    def OnNavigationLeft(self, event): _log('OnNavigationLeft', 'Dispatched', event=event)
-    def OnNavigationRight(self, event): _log('OnNavigationRight', 'Dispatched', event=event)
+    def OnNavigationLeft(self, event):
+        _log('OnNavigationLeft', 'Dispatched', event=event)
+        self._navigation.PreviousMode()
+
+    def OnNavigationRight(self, event):
+        _log('OnNavigationRight', 'Dispatched', event=event)
+        self._navigation.NextMode()
+
     def OnNavigationKnobPressed(self, event): _log('OnNavigationKnobPressed', 'Dispatched', event=event)
 
     def OnBankNext(self, event): _log('OnBankNext', 'Dispatched', event=event)
@@ -589,7 +723,6 @@ class ArturiaMidiProcessor:
         if bank_index < channels.channelCount():
             channels.selectOneChannel(bank_index)
         _log('OnBankSelect', 'Selected bank index=%d' % bank_index, event=event)
-
 
     def OnSetActiveSliderTrack(self, event): _log('OnSetActiveSliderTrack', 'Dispatched', event=event)
 
@@ -606,6 +739,7 @@ def OnInit():
     global _controller
     print('Loaded MIDI script for Arturia Keylab mkII')
     _controller.Sync()
+    _controller.display().SetLines(line1='Connected to', line2=' FL Studio', expires=3000)
 
 
 def OnIdle():

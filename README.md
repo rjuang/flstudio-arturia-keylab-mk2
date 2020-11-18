@@ -82,6 +82,10 @@ The rows serve as a 4-count beat visual metronome. We also alternate lighting up
 - I've yet to tie in the Next/Previous buttons for enabling channel selections above 8. 
 - No idea what to do with the Part 1/Part 2 buttons when the Live button is on.
 
+#### Navigation Panel
+- The left and right arrows will cycle through the active channel's Volume, Panning, and Pitch. 
+- The knob initially controls the active channel's volume. Pressing left/right will switch through panning/pitch.
+- The display will momentarily update with the value before going back to the default display.
 
 ## Remaining Work To Do
 - Figure out if I want to keep the punch in/out buttons and if they are useful.
