@@ -1,10 +1,12 @@
 # name=Arturia Keylab mkII
+import arrangement
 import channels
 import device
 import general
 import midi
 import mixer
 import patterns
+import playlist
 import ui
 import time
 import transport
@@ -16,11 +18,13 @@ _DEBUG = True
 # Enable to iterate through all LEDs and toggle lights ON and OFF.
 _DEBUG_LEDS = False
 
-MIDI_ON = 127
-MIDI_OFF = 0
+LIGHT_ON = 127
+LIGHT_OFF = 0
 
 SS_STOP = 0
 SS_START = 2
+
+EPHEMERAL_DISPLAY_INTERVAL_MS = 1500
 
 def _log(tag, message, event=None):
     """Log out message if global _DEBUG variable is True."""
@@ -35,7 +39,7 @@ def _event_as_string(event):
 
 
 def _onoff_byte(is_on):
-    return MIDI_ON if is_on else MIDI_OFF
+    return LIGHT_ON if is_on else LIGHT_OFF
 
 class MidiEventDispatcher:
     """ Dispatches a MIDI event after feeding it through a transform function.
@@ -226,37 +230,68 @@ class ArturiaLights:
 class ArturiaPagedDisplay:
     def __init__(self, display):
         self._display = display
-        # Mapping of page name string to line 1 string for that page.
+        # Mapping of page name string to line 1 string provider function for that page.
         self._line1 = {}
-        # Mapping of page name string to line 2 string for that page.
+        # Mapping of page name string to line 2 string provider function for that page.
         self._line2 = {}
-        # Active page to display or None if no pages to display.
+        # Active page to display or None for default display
         self._active_page = None
+        # Temporary page to display or None for default display
+        self._ephemeral_page = None
+        # Timestamp after which to switch back to active page.
+        self._page_expiration_time_ms = 0
+        # Last timestamp in milliseconds in which the text was updated.
+        self._last_update_ms = 0
 
     def SetPageLines(self, page_name, line1=None, line2=None):
+        if line1 is not None:
+            self._line1[page_name] = lambda: line1
+        if line2 is not None:
+            self._line2[page_name] = lambda: line2
+        if self._active_page == page_name:
+            self._update_display(False)
+
+    def SetPageLinesProvider(self, page_name, line1=None, line2=None):
         if line1 is not None:
             self._line1[page_name] = line1
         if line2 is not None:
             self._line2[page_name] = line2
         if self._active_page == page_name:
-            self._update_display()
+            self._update_display(False)
 
-    def SetActivePage(self, page_name):
-        self._active_page = page_name
-        self._update_display()
+    def SetActivePage(self, page_name, expires=None):
+        reset_scroll = page_name != self._active_page
+        if expires is not None:
+            self._ephemeral_page = page_name
+            self._page_expiration_time_ms = ArturiaDisplay.time_ms() + expires
+        else:
+            self._active_page = page_name
+        self._update_display(reset_scroll)
 
     def display(self):
         return self._display
 
-    def _update_display(self):
-        if self._active_page is not None:
+    def _update_display(self, reset_scroll):
+        active_page = self._active_page
+        if reset_scroll:
+            self._display.ResetScroll()
+
+        self._last_update_ms = ArturiaDisplay.time_ms()
+        if self._last_update_ms < self._page_expiration_time_ms:
+            active_page = self._ephemeral_page
+
+        if active_page is not None:
             line1 = None
             line2 = None
-            if self._active_page in self._line1:
-                line1 = self._line1[self._active_page]
-            if self._active_page in self._line2:
-                line2 = self._line2[self._active_page]
+            if active_page in self._line1:
+                line1 = self._line1[active_page]()
+            if active_page in self._line2:
+                line2 = self._line2[active_page]()
             self._display.SetLines(line1=line1, line2=line2)
+
+    def Refresh(self):
+        self._update_display(False)
+        self._display.Refresh()
 
 
 class ArturiaDisplay:
@@ -279,41 +314,47 @@ class ArturiaDisplay:
         self._line2_display_offset = 0
         # Last timestamp in milliseconds in which the text was updated.
         self._last_update_ms = 0
-        # Minimum refresh interval before text is updated (for scrolling).
-        self._refresh_interval_ms = 500
+        # Minimum interval before text is scrolled
+        self._scroll_interval_ms = 500
         # How many characters to allow last char to scroll before starting over.
         self._end_padding = 8
         # Track what's currently being displayed
         self._last_payload = bytes()
 
     def _get_line1_bytes(self):
-        # Get up to 16-bytes the exact chars to display for line 1. Also increment the scroll position by 1.
+        # Get up to 16-bytes the exact chars to display for line 1.
         start_pos = self._line1_display_offset
         end_pos = start_pos + 16
         line_src = self._line1
-        if self._expiration_time_ms > self._get_time_ms():
+        if self._expiration_time_ms > self.time_ms():
             line_src = self._ephemeral_line1
-        if end_pos >= len(line_src) + self._end_padding or len(line_src) <= 16:
-            self._line1_display_offset = 0
-        else:
-            self._line1_display_offset += 1
         return bytearray(line_src[start_pos:end_pos], 'ascii')
 
     def _get_line2_bytes(self):
-        # Get up to 16-bytes the exact chars to display for line 2. Also increment the scroll position by 1.
+        # Get up to 16-bytes the exact chars to display for line 2.
         start_pos = self._line2_display_offset
         end_pos = start_pos + 16
         line_src = self._line2
-        if self._expiration_time_ms > self._get_time_ms():
+        if self._expiration_time_ms > self.time_ms():
             line_src = self._ephemeral_line2
-        if end_pos >= len(line_src) + self._end_padding or len(line_src) <= 16:
-            self._line2_display_offset = 0
-        else:
-            self._line2_display_offset += 1
         return bytearray(line_src[start_pos:end_pos], 'ascii')
 
+    def _get_new_offset(self, start_pos, line_src):
+        end_pos = start_pos + 16
+        if end_pos >= len(line_src) + self._end_padding or len(line_src) <= 16:
+            return 0
+        else:
+            return start_pos + 1
+
+    def _update_scroll_pos(self):
+        current_time_ms = self.time_ms()
+        if current_time_ms >= self._scroll_interval_ms + self._last_update_ms:
+            self._line1_display_offset = self._get_new_offset(self._line1_display_offset, self._line1)
+            self._line2_display_offset = self._get_new_offset(self._line2_display_offset, self._line2)
+            self._last_update_ms = current_time_ms
+
     @staticmethod
-    def _get_time_ms():
+    def time_ms():
         # Get the current timestamp in milliseconds
         return time.monotonic() * 1000
 
@@ -323,14 +364,15 @@ class ArturiaDisplay:
         data += bytes([0x01]) + self._get_line1_bytes() + bytes([0x00])
         data += bytes([0x02]) + self._get_line2_bytes() + bytes([0x00])
         data += bytes([0x7F])
-        self._last_update_ms = self._get_time_ms()
+
+        self._update_scroll_pos()
         if self._last_payload != data:
             _send_to_device(data)
             self._last_payload = data
 
-    def SetRefreshInterval(self, min_interval_ms):
-        """ Sets the minimum time elapsed before next refresh. """
-        self._refresh_interval_ms = min_interval_ms
+    def ResetScroll(self):
+        self._line1_display_offset = 0
+        self._line2_display_offset = 0
 
     def SetLines(self, line1=None, line2=None, expires=None):
         """ Update lines on the display, or leave alone if not provided.
@@ -343,25 +385,21 @@ class ArturiaDisplay:
         if expires is None:
             if line1 is not None:
                 self._line1 = line1
-                self._line1_display_offset = 0
             if line2 is not None:
                 self._line2 = line2
-                self._line2_display_offset = 0
         else:
-            self._expiration_time_ms = self._get_time_ms() + expires
+            self._expiration_time_ms = self.time_ms() + expires
             if line1 is not None:
                 self._ephemeral_line1 = line1
-                self._line1_display_offset = 0
             if line2 is not None:
                 self._ephemeral_line2 = line2
-                self._line2_display_offset = 0
 
         self._refresh_display()
         return self
 
     def Refresh(self):
         """ Called to refresh the display, possibly with updated text. """
-        if self._get_time_ms() - self._last_update_ms >= self._refresh_interval_ms:
+        if self.time_ms() - self._last_update_ms >= self._scroll_interval_ms:
             self._refresh_display()
         return self
 
@@ -378,8 +416,8 @@ class VisualMetronome:
         # Also turn off all lights
         self._lights.SetPadLights(self._zero_matrix())
         self._lights.SetLights({
-            ArturiaLights.ID_TRANSPORTS_REWIND: MIDI_OFF,
-            ArturiaLights.ID_TRANSPORTS_FORWARD: MIDI_OFF,
+            ArturiaLights.ID_TRANSPORTS_REWIND: LIGHT_OFF,
+            ArturiaLights.ID_TRANSPORTS_FORWARD: LIGHT_OFF,
         })
 
     @staticmethod
@@ -400,7 +438,7 @@ class VisualMetronome:
         if value != 0:
             row = self._bar_count % 4
             col = self._beat_count % 4
-            lights[row][col] = MIDI_ON
+            lights[row][col] = LIGHT_ON
             two_step = self._beat_count % 2 == 0
             self._lights.SetPadLights(lights)
             self._lights.SetLights({
@@ -410,13 +448,14 @@ class VisualMetronome:
 
 
 class NavigationMode:
-    def __init__(self, _display):
-        self._display = _display
+    def __init__(self, _paged_display):
+        self._paged_display = _paged_display
         self._modes = []
         self._active_index = 0
 
     def AddMode(self, name, update_fn, line_fn):
         self._modes.append((name, update_fn, line_fn))
+        self._paged_display.SetPageLinesProvider(name, line1=lambda: name, line2=line_fn)
         return self
 
     def PreviousMode(self):
@@ -439,9 +478,8 @@ class NavigationMode:
 
     def _refresh(self):
         if self._active_index >= len(self._modes):
-            return
-        name, _, line_fn = self._modes[self._active_index]
-        self._display.SetLines(line1=name, line2=line_fn(), expires=1500)
+            return 'main'
+        self._paged_display.SetActivePage(self._modes[self._active_index][0], expires=EPHEMERAL_DISPLAY_INTERVAL_MS)
 
 
 class ArturiaController:
@@ -477,22 +515,21 @@ class ArturiaController:
             ArturiaLights.ID_TRACK_MUTE: _onoff_byte(channels.isChannelMuted(active_index)),
             ArturiaLights.ID_TRANSPORTS_STOP: _onoff_byte(not transport.isPlaying()),
             ArturiaLights.ID_TRANSPORTS_PLAY: _onoff_byte(transport.getSongPos() > 0),
+            ArturiaLights.ID_GLOBAL_OUT: _onoff_byte(arrangement.selectionEnd() > arrangement.selectionStart()),
         }
         self._lights.SetLights(led_map)
 
         # Update selected channel
-        bank_lights = [MIDI_OFF] * 9
+        bank_lights = [LIGHT_OFF] * 9
         if active_index < len(bank_lights):
-            bank_lights[active_index] = MIDI_ON
+            bank_lights[active_index] = LIGHT_ON
         self._lights.SetBankLights(bank_lights)
 
         # Update display
         channel_name = channels.getChannelName(active_index)
         pattern_number = patterns.patternNumber()
         pattern_name = patterns.getPatternName(pattern_number)
-        #volume = int(channels.getChannelVolume(active_index) * 100)
-        #pan = int(channels.getChannelPan(active_index) * 100)
-        self._display.SetLines(
+        self._paged_display.SetPageLines('main',
             line1='[%d:%d] %s' % (active_index + 1, pattern_number, channel_name),
             line2='%s' % pattern_name)
 
@@ -558,12 +595,18 @@ class ArturiaMidiProcessor:
         def get_volume_line(): return '    %d%%' % int(channels.getChannelVolume(channels.selectedChannel()) * 100)
         def get_panning_line(): return '    %d%%' % int(channels.getChannelPan(channels.selectedChannel()) * 100)
         def get_pitch_line(): return '    %d%%' % int (channels.getChannelPitch(channels.selectedChannel()) * 100)
+        def get_time_position(): return ' %d:%d:%d' % (playlist.getVisTimeBar(), playlist.getVisTimeTick(), playlist.getVisTimeStep())
+        def get_pattern_line(): return patterns.getPatternName(patterns.patternNumber())
+        def get_channel_line(): return channels.getChannelName(channels.selectedChannel())
 
         self._navigation = (
-            NavigationMode(self._controller.display())
+            NavigationMode(self._controller.paged_display())
             .AddMode('Volume', self.OnUpdateVolume, get_volume_line)
             .AddMode('Panning', self.OnUpdatePanning, get_panning_line)
             .AddMode('Pitch', self.OnUpdatePitch, get_pitch_line)
+            .AddMode('Time Marker', self.OnUpdateTimeMarker, get_time_position)
+            .AddMode('Pattern', self.OnUpdatePattern, get_pattern_line)
+            .AddMode('Channel', self.OnUpdateChannel, get_channel_line)
         )
         self._debug_value = 0
 
@@ -584,6 +627,20 @@ class ArturiaMidiProcessor:
         channel = channels.selectedChannel()
         pan = self.clip(-1., 1., channels.getChannelPitch(channel) + (delta / 100.0))
         channels.setChannelPitch(channel, pan)
+
+    def OnUpdateTimeMarker(self, delta):
+        num_beats = patterns.getPatternLength(patterns.patternNumber())
+        step_size = 1.0 / float(num_beats)
+        pos = transport.getSongPos()
+        transport.setSongPos(self.clip(0.0, 1.0, pos + step_size * delta))
+
+    def OnUpdatePattern(self, delta):
+        index = self.clip(1, patterns.patternCount(), patterns.patternNumber() + delta)
+        patterns.jumpToPattern(index)
+
+    def OnUpdateChannel(self, delta):
+        index = self.clip(0, channels.channelCount() - 1, channels.selectedChannel() + delta)
+        channels.selectOneChannel(index)
 
     def ProcessEvent(self, event):
         return self._midi_id_dispatcher.Dispatch(event)
@@ -623,16 +680,20 @@ class ArturiaMidiProcessor:
     def OnTransportsBack(self, event):
         _log('OnTransportsBack', 'Dispatched', event=event)
         if self._is_pressed(event):
-            transport.rewind(SS_START)
+            transport.continuousMove(-1, SS_START)
+            self._controller.paged_display().SetActivePage('Time Marker')
         else:
-            transport.rewind(SS_STOP)
+            transport.continuousMove(-1, SS_STOP)
+            self._controller.paged_display().SetActivePage('main')
 
     def OnTransportsForward(self, event):
         _log('OnTransportsForward', 'Dispatched', event=event)
         if self._is_pressed(event):
-            transport.fastForward(SS_START)
+            transport.continuousMove(1, SS_START)
+            self._controller.paged_display().SetActivePage('Time Marker')
         else:
-            transport.fastForward(SS_STOP)
+            transport.continuousMove(1, SS_STOP)
+            self._controller.paged_display().SetActivePage('main')
 
     def OnTransportsStop(self, event):
         _log('OnTransportsStop', 'Dispatched', event=event)
@@ -658,10 +719,13 @@ class ArturiaMidiProcessor:
     def OnGlobalIn(self, event):
         _log('OnGlobalIn', 'Dispatched', event=event)
         transport.globalTransport(midi.FPT_PunchIn, midi.FPT_PunchIn, event.pmeFlags)
+        self._controller.lights().SetLights({ArturiaLights.ID_GLOBAL_IN: LIGHT_ON})
 
     def OnGlobalOut(self, event):
         _log('OnGlobalOut', 'Dispatched', event=event)
         transport.globalTransport(midi.FPT_PunchOut, midi.FPT_PunchOut, event.pmeFlags)
+        if arrangement.selectionStart() < 0:
+            self._controller.lights().SetLights({ArturiaLights.ID_GLOBAL_IN: LIGHT_OFF})
 
     def OnGlobalMetro(self, event):
         _log('OnGlobalMetro', 'Dispatched', event=event)
@@ -710,7 +774,9 @@ class ArturiaMidiProcessor:
         _log('OnNavigationRight', 'Dispatched', event=event)
         self._navigation.NextMode()
 
-    def OnNavigationKnobPressed(self, event): _log('OnNavigationKnobPressed', 'Dispatched', event=event)
+    def OnNavigationKnobPressed(self, event):
+        _log('OnNavigationKnobPressed', 'Dispatched', event=event)
+        ui.showWindow(5)
 
     def OnBankNext(self, event): _log('OnBankNext', 'Dispatched', event=event)
     def OnBankPrev(self, event): _log('OnBankPrev', 'Dispatched', event=event)
@@ -739,11 +805,13 @@ def OnInit():
     global _controller
     print('Loaded MIDI script for Arturia Keylab mkII')
     _controller.Sync()
-    _controller.display().SetLines(line1='Connected to', line2=' FL Studio', expires=3000)
+    _controller.paged_display().SetPageLines('startup', line1='Connected to', line2=' FL Studio')
+    _controller.paged_display().SetActivePage('main')
+    _controller.paged_display().SetActivePage('welcome', expires=EPHEMERAL_DISPLAY_INTERVAL_MS)
 
 
 def OnIdle():
-    _controller.display().Refresh()
+    _controller.paged_display().Refresh()
 
 
 def OnMidiMsg(event):

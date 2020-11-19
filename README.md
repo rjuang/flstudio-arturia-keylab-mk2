@@ -48,10 +48,10 @@ Pattern Name
 #### Global Controls
 - Song mode button will light up if FL Studio is in Song playback mode. Pressing the button will toggle
  between song and pattern playback. The LED is on when playback mode is Song.
-- Punch in button -- I have this linked to FL Studio's punch in handler. I haven no idea if it's 
-implemented correctly. I haven't figured out what punch in function is.
-- Punch out button -- I have this linked to FL Studio's punch out handler. I have no idea if it's
-implemented correctly. I haven't figureed out what the punch out function is.
+- Punch in button -- press this to set a begin selection marker. Light turns on when a start selection marker has been 
+set.
+- Punch out button -- press this to set the end selection marker. Light turns on when pressing this results in a
+selected range. Pressing this button a second time will unselect the selected range and also turn off the light.
 - Metro toggles the metronome. The LED lights up if the Metronome is enabled. Note that there is a 
 visual metronome that will light up the 4x4 grid lights as well as the rewind/forward transport 
 buttons on the keyboard.
@@ -83,14 +83,19 @@ The rows serve as a 4-count beat visual metronome. We also alternate lighting up
 - No idea what to do with the Part 1/Part 2 buttons when the Live button is on.
 
 #### Navigation Panel
-- The left and right arrows will cycle through the active channel's Volume, Panning, and Pitch. 
-- The knob initially controls the active channel's volume. Pressing left/right will switch through panning/pitch.
+- The left and right arrows will cycle through various modes. These are:
+  1. Volume - turning the knob will set the active channel volume.
+  2. Panning - turning the knob will set the active channel panning.
+  3. Pitch - turning the knob will set the active channel pitch.
+  4. Time Marker - turning the knob will advance/retreat the time marker by 1 beat.
+  5. Pattern - turning the knob will select the active pattern.
+  6. Channel - turning the knob will select the active channel.
+- The knob initially controls the active channel's volume. Pressing left/right will switch through what the knob
+ controls.
 - The display will momentarily update with the value before going back to the default display.
 
 ## Remaining Work To Do
-- Figure out if I want to keep the punch in/out buttons and if they are useful.
-- Figure out how to make the navigation knob and knob press and buttons useful. 
-Thinking of something to toggle modes for adjusting pan/volume, etc.
 - Figure out what to use the encoder knobs and sliders for.
-- I'd like to do something with arrangements flow for this, but still thinking of what will be useful.
+- Figure out how to add a new instrument to the channel rack
+ -Figure out how to have sliders/knobs tweak the plugin page.
 
