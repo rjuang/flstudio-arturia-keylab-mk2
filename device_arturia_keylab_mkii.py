@@ -8,6 +8,7 @@ import mixer
 import patterns
 import playlist
 import ui
+import utils
 import time
 import transport
 
@@ -477,8 +478,6 @@ class NavigationMode:
         self._refresh()
 
     def _refresh(self):
-        if self._active_index >= len(self._modes):
-            return 'main'
         self._paged_display.SetActivePage(self._modes[self._active_index][0], expires=EPHEMERAL_DISPLAY_INTERVAL_MS)
 
 
@@ -592,21 +591,38 @@ class ArturiaMidiProcessor:
             .SetHandler(60, self.OnNavigationKnobTurned)
         )
 
-        def get_volume_line(): return '    %d%%' % int(channels.getChannelVolume(channels.selectedChannel()) * 100)
-        def get_panning_line(): return '    %d%%' % int(channels.getChannelPan(channels.selectedChannel()) * 100)
-        def get_pitch_line(): return '    %d%%' % int (channels.getChannelPitch(channels.selectedChannel()) * 100)
-        def get_time_position(): return ' %d:%d:%d' % (playlist.getVisTimeBar(), playlist.getVisTimeTick(), playlist.getVisTimeStep())
+        def get_volume_line(): return '    [%d%%]' % int(channels.getChannelVolume(channels.selectedChannel()) * 100)
+        def get_panning_line(): return '    [%d%%]' % int(channels.getChannelPan(channels.selectedChannel()) * 100)
+        def get_pitch_line(): return '    [%d%%]' % int (channels.getChannelPitch(channels.selectedChannel()) * 100)
+        def get_time_position(): return ' [%d:%d:%d]' % (playlist.getVisTimeBar(), playlist.getVisTimeTick(), playlist.getVisTimeStep())
         def get_pattern_line(): return patterns.getPatternName(patterns.patternNumber())
-        def get_channel_line(): return channels.getChannelName(channels.selectedChannel())
+        def get_channel_line(): return '[%s]' % channels.getChannelName(channels.selectedChannel())
+        def get_plugin_line(): return '[%s]' % channels.getChannelName(channels.selectedChannel())
+
+        def get_color_red_line():
+            r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
+            return '[%3d] %3d  %3d ' % (r, g, b)
+
+        def get_color_green_line():
+            r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
+            return ' %3d [%3d] %3d ' % (r, g, b)
+
+        def get_color_blue_line():
+            r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
+            return ' %3d  %3d [%3d]' % (r, g, b)
 
         self._navigation = (
             NavigationMode(self._controller.paged_display())
-            .AddMode('Volume', self.OnUpdateVolume, get_volume_line)
-            .AddMode('Panning', self.OnUpdatePanning, get_panning_line)
-            .AddMode('Pitch', self.OnUpdatePitch, get_pitch_line)
-            .AddMode('Time Marker', self.OnUpdateTimeMarker, get_time_position)
-            .AddMode('Pattern', self.OnUpdatePattern, get_pattern_line)
-            .AddMode('Channel', self.OnUpdateChannel, get_channel_line)
+            .AddMode('Set Volume', self.OnUpdateVolume, get_volume_line)
+            .AddMode('Set Panning', self.OnUpdatePanning, get_panning_line)
+            .AddMode('Set Pitch', self.OnUpdatePitch, get_pitch_line)
+            .AddMode('Set Time Marker', self.OnUpdateTimeMarker, get_time_position)
+            .AddMode('Set Pattern', self.OnUpdatePattern, get_pattern_line)
+            .AddMode('Select Channel', self.OnUpdateChannel, get_channel_line)
+            .AddMode('Plugin Preset', self.OnUpdatePlugin, get_plugin_line)
+            .AddMode('Set Color RED', self.OnUpdateColorRed, get_color_red_line)
+            .AddMode('Set Color GREEN', self.OnUpdateColorGreen, get_color_green_line)
+            .AddMode('Set Color BLUE', self.OnUpdateColorBlue, get_color_blue_line)
         )
         self._debug_value = 0
 
@@ -641,6 +657,30 @@ class ArturiaMidiProcessor:
     def OnUpdateChannel(self, delta):
         index = self.clip(0, channels.channelCount() - 1, channels.selectedChannel() + delta)
         channels.selectOneChannel(index)
+
+    def OnUpdatePlugin(self, delta):
+        # Indicator to notify user that preset is in process of being set.
+        self._controller.display().SetLines(line2=' ... loading ...')
+        channels.focusEditor(channels.selectedChannel())
+        if delta > 0:
+            ui.next()
+        elif delta < 0:
+            ui.previous()
+
+    def OnUpdateColorRed(self, delta):
+        r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
+        r = self.clip(0, 255, r + delta)
+        channels.setChannelColor(channels.selectedChannel(), utils.RGBToColor(r, g, b))
+
+    def OnUpdateColorGreen(self, delta):
+        r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
+        g = self.clip(0, 255, g + delta)
+        channels.setChannelColor(channels.selectedChannel(), utils.RGBToColor(r, g, b))
+
+    def OnUpdateColorBlue(self, delta):
+        r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
+        b = self.clip(0, 255, b + delta)
+        channels.setChannelColor(channels.selectedChannel(), utils.RGBToColor(r, g, b))
 
     def ProcessEvent(self, event):
         return self._midi_id_dispatcher.Dispatch(event)
@@ -776,7 +816,6 @@ class ArturiaMidiProcessor:
 
     def OnNavigationKnobPressed(self, event):
         _log('OnNavigationKnobPressed', 'Dispatched', event=event)
-        ui.showWindow(5)
 
     def OnBankNext(self, event): _log('OnBankNext', 'Dispatched', event=event)
     def OnBankPrev(self, event): _log('OnBankPrev', 'Dispatched', event=event)
@@ -805,7 +844,7 @@ def OnInit():
     global _controller
     print('Loaded MIDI script for Arturia Keylab mkII')
     _controller.Sync()
-    _controller.paged_display().SetPageLines('startup', line1='Connected to', line2=' FL Studio')
+    _controller.paged_display().SetPageLines('welcome', line1='Connected to ', line2='   FL Studio')
     _controller.paged_display().SetActivePage('main')
     _controller.paged_display().SetActivePage('welcome', expires=EPHEMERAL_DISPLAY_INTERVAL_MS)
 

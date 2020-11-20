@@ -90,6 +90,9 @@ The rows serve as a 4-count beat visual metronome. We also alternate lighting up
   4. Time Marker - turning the knob will advance/retreat the time marker by 1 beat.
   5. Pattern - turning the knob will select the active pattern.
   6. Channel - turning the knob will select the active channel.
+  7. Plugin Preset - when a channel with a plugin is selected, turning the knob will display the window and cycle
+   through the presets. I've tested this only on FLEX plugin and it works for cycling through the different presets.
+  8. Color (Red, Green, Blue) - Set the color of the active channel with the knob.
 - The knob initially controls the active channel's volume. Pressing left/right will switch through what the knob
  controls.
 - The display will momentarily update with the value before going back to the default display.
