@@ -67,6 +67,30 @@ class ArturiaDisplay:
         # Get the current timestamp in milliseconds
         return time.monotonic() * 1000
 
+    _ABBREVIATION_MAP = {
+        'VOLUME': 'VOL',
+        'ENVELOPE': 'ENV',
+        'FILTER': 'FLT',
+        'ATTACK': 'ATK',
+        'RESONANCE': 'RES',
+        'PARAMETER': 'PARAM',
+        'MASTER': 'MSTR',
+        'SIZE': 'SZ',
+    }
+    @staticmethod
+    def abbreviate(line):
+        if len(line) <= 16:
+            return line
+        words = line.split(' ')
+        shortened_words = []
+        for w in words:
+            if not w:
+                continue
+            if w in ArturiaDisplay._ABBREVIATION_MAP:
+                w = ArturiaDisplay._ABBREVIATION_MAP[w]
+            shortened_words.append(w)
+        return ' '.join(shortened_words)
+
     def _refresh_display(self):
         # Internally called to refresh the display now.
         data = bytes([0x04, 0x00, 0x60])

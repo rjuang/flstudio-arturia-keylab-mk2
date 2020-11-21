@@ -36,6 +36,7 @@ class ArturiaPagedDisplay:
     def SetActivePage(self, page_name, expires=None):
         reset_scroll = page_name != self._active_page
         if expires is not None:
+            reset_scroll = page_name != self._ephemeral_page
             self._ephemeral_page = page_name
             self._page_expiration_time_ms = ArturiaDisplay.time_ms() + expires
         else:

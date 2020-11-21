@@ -1,11 +1,13 @@
 import arrangement
 import channels
+import debug
 import general
 import patterns
 import transport
 import ui
 
 from arturia_display import ArturiaDisplay
+from arturia_encoders import ArturiaInputControls
 from arturia_leds import ArturiaLights
 from arturia_metronome import VisualMetronome
 from arturia_pages import ArturiaPagedDisplay
@@ -18,6 +20,7 @@ class ArturiaController:
         self._paged_display = ArturiaPagedDisplay(self._display)
         self._lights = ArturiaLights()
         self._metronome = VisualMetronome(self._lights)
+        self._encoders = ArturiaInputControls(self._paged_display, self._lights)
 
     def display(self):
         return self._display
@@ -30,6 +33,9 @@ class ArturiaController:
 
     def paged_display(self):
         return self._paged_display
+
+    def encoders(self):
+        return self._encoders
 
     def Sync(self):
         """ Syncs up all visual indicators on keyboard with changes from FL Studio. """
@@ -60,7 +66,11 @@ class ArturiaController:
         channel_name = channels.getChannelName(active_index)
         pattern_number = patterns.patternNumber()
         pattern_name = patterns.getPatternName(pattern_number)
+
+        # Update knob mode
+        debug.log('DEBUG', 'pluginname="%s"' % ui.getFocusedPluginName())
         self._paged_display.SetPageLines(
             'main',
             line1='[%d:%d] %s' % (active_index + 1, pattern_number, channel_name),
             line2='%s' % pattern_name)
+        self._encoders.Refresh()

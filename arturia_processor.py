@@ -3,6 +3,7 @@ import channels
 import debug
 import general
 import midi
+import mixer
 import patterns
 import playlist
 import transport
@@ -176,14 +177,17 @@ class ArturiaMidiProcessor:
     def OnKnobEvent(self, event):
         self._knob_dispatcher.Dispatch(event)
 
+    def _to_rec_value(self, value):
+        return int((value / 127.0) * midi.FromMIDI_Max)
+
     def OnSliderEvent(self, event):
         slider_index = event.status - event.midiId
         slider_value = event.controlVal
+
         debug.log('OnSliderEvent', 'Slider %d = %d' % (slider_index, slider_value), event=event)
-        event_id = channels.getRecEventId(channels.selectedChannel()) + midi.REC_Chan_Plugin_First + 10 + slider_index
-        value = channels.incEventValue(event_id, 1, 0.01)
-        debug.log('RADFORD', 'value inc=' + str(value))
-        general.processRECEvent(event_id, value, midi.REC_UpdateValue)
+        event_id = midi.REC_Mixer_Vol + mixer.getTrackPluginId(slider_index + 1, 0)
+        general.processRECEvent(event_id, self._to_rec_value(slider_value),
+                                midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint )
 
     @staticmethod
     def _get_knob_delta(event):
@@ -194,16 +198,6 @@ class ArturiaMidiProcessor:
         delta = self._get_knob_delta(event)
         debug.log('OnNavigationKnob', 'Delta = %d' % delta, event=event)
         self._navigation.UpdateValue(delta)
-
-    # For FLEX plugin:
-    # midi.REC_Chan_Plugin_First:
-    #  Vol Envelope : +0 - +4 -> A, H, D, S, R
-    #  Filter Envelope: ++5 -> +9 -> A, H , D, S, R
-    #  Sliders: +10, -> +17
-    # FCutoff: +18,
-    # Env Amt: +19
-    # Env Res: +20
-    # Master filter: +21
 
     _KNOB_MAPPING = {
         0: midi.REC_Chan_Plugin_First + 18,
@@ -217,13 +211,10 @@ class ArturiaMidiProcessor:
         8: midi.REC_Chan_Plugin_First + 0,
     }
 
-
     def OnPanKnobTurned(self, event):
         idx = event.controlNum - 16
         delta = self._get_knob_delta(event)
-        event_id = channels.getRecEventId(channels.selectedChannel()) + self._KNOB_MAPPING[idx]
-        value = channels.incEventValue(event_id, delta, 0.01)
-        general.processRECEvent(event_id, value, midi.REC_UpdateValue)
+        self._controller.encoders().ProcessKnobInput(idx, delta)
 
     def OnTransportsBack(self, event):
         debug.log('OnTransportsBack', 'Dispatched', event=event)
@@ -328,8 +319,13 @@ class ArturiaMidiProcessor:
         transport.globalTransport(midi.FPT_F8, midi.FPT_F8)
         debug.log('DEBUG', 'Trying to show editor for %d' % channels.channelCount())
 
-    def OnBankNext(self, event): debug.log('OnBankNext', 'Dispatched', event=event)
-    def OnBankPrev(self, event): debug.log('OnBankPrev', 'Dispatched', event=event)
+    def OnBankNext(self, event):
+        debug.log('OnBankNext', 'Dispatched', event=event)
+        self._controller.encoders().NextKnobsPage()
+
+    def OnBankPrev(self, event):
+        debug.log('OnBankPrev', 'Dispatched', event=event)
+        self._controller.encoders().NextSlidersPage()
 
     def OnLivePart1(self, event): debug.log('OnLivePart1', 'Dispatched', event=event)
     def OnLivePart2(self, event): debug.log('OnLivePart2', 'Dispatched', event=event)
