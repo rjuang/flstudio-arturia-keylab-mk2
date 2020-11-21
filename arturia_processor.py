@@ -10,6 +10,7 @@ import transport
 import ui
 import utils
 
+from arturia_display import ArturiaDisplay
 from arturia_midi import MidiEventDispatcher
 from arturia_navigation import NavigationMode
 from arturia_leds import ArturiaLights
@@ -103,13 +104,14 @@ class ArturiaMidiProcessor:
             .AddMode('Set Panning', self.OnUpdatePanning, get_panning_line)
             .AddMode('Set Pitch', self.OnUpdatePitch, get_pitch_line)
             .AddMode('Set Time Marker', self.OnUpdateTimeMarker, get_time_position)
-            .AddMode('Set Pattern', self.OnUpdatePattern, get_pattern_line)
-            .AddMode('Select Channel', self.OnUpdateChannel, get_channel_line)
-            .AddMode('Plugin Preset', self.OnUpdatePlugin, get_plugin_line)
             .AddMode('Set Color RED', self.OnUpdateColorRed, get_color_red_line)
             .AddMode('Set Color GREEN', self.OnUpdateColorGreen, get_color_green_line)
             .AddMode('Set Color BLUE', self.OnUpdateColorBlue, get_color_blue_line)
+            .AddMode('Set Pattern', self.OnUpdatePattern, get_pattern_line)
+            .AddMode('Select Channel', self.OnUpdateChannel, get_channel_line)
+            .AddMode('Plugin Preset', self.OnUpdatePlugin, get_plugin_line)
         )
+        self._update_focus_time_ms = 0
         self._debug_value = 0
 
     def clip(self, low, high, x):
@@ -144,10 +146,17 @@ class ArturiaMidiProcessor:
         index = self.clip(0, channels.channelCount() - 1, channels.selectedChannel() + delta)
         channels.selectOneChannel(index)
 
+    def _request_plugin_window_focus(self):
+        current_time_ms = ArturiaDisplay.time_ms()
+        # Require explicit window focus if last request to focus was more than a second ago.
+        if current_time_ms > self._update_focus_time_ms + 1000:
+            # This call is expensive so try to use sparingly.
+            channels.focusEditor(channels.selectedChannel())
+        self._update_focus_time_ms = current_time_ms
+
     def OnUpdatePlugin(self, delta):
         # Indicator to notify user that preset is in process of being set.
-        self._controller.display().SetLines(line2=' ... loading ...')
-        channels.focusEditor(channels.selectedChannel())
+        self._request_plugin_window_focus()
         if delta > 0:
             ui.next()
         elif delta < 0:

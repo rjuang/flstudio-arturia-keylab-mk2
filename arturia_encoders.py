@@ -102,6 +102,7 @@ class ArturiaInputControls:
         self._sliders_mode = ''
         self._sliders_mode_index = 0
         self._last_hint_title = ''
+        self._last_unknown_mode = ''
 
     def SetKnobs(self, base_fn=None, offset=None):
         if base_fn is not None:
@@ -119,8 +120,11 @@ class ArturiaInputControls:
 
     def SetKnobMode(self, knob_mode):
         if knob_mode not in self._knobs_map:
+            self._last_unknown_mode = knob_mode
+            log('WARNING', 'No encoder mapping for plugin <%s>' % knob_mode)
             knob_mode = ''
-            log('WARNING', 'No encoder mapping for plugin "%s"' % knob_mode)
+        else:
+            self._last_unknown_mode = ''
         self._knobs_mode = knob_mode
         self._knobs_mode_index = 0
         return self
@@ -172,6 +176,10 @@ class ArturiaInputControls:
         value = channels.incEventValue(event_id, delta, 0.01)
         general.processRECEvent(event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint)
         self._check_and_show_hint()
+        if not self._knobs_mode:
+            log('KNOBS', 'Knob offset=%d, REC EventId=%03d [%s]' % (
+                knob_index + self._knobs_mode_index * len(knobs),
+                event_id, self._last_unknown_mode))
         return self
 
     def ProcessSliderInput(self, slider_index, delta):
