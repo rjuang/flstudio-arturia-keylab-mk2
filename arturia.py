@@ -3,6 +3,7 @@ import channels
 import debug
 import general
 import patterns
+import plugins
 import transport
 import ui
 
@@ -68,7 +69,9 @@ class ArturiaController:
         pattern_name = patterns.getPatternName(pattern_number)
 
         # Update knob mode
-        debug.log('DEBUG', 'pluginname="%s"' % ui.getFocusedPluginName())
+        plugin_name = plugins.getPluginName(active_index) if plugins.isValid(active_index) else ''
+        self._encoders.SetKnobMode(plugin_name)
+
         self._paged_display.SetPageLines(
             'main',
             line1='[%d:%d] %s' % (active_index + 1, pattern_number, channel_name),

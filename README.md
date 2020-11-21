@@ -99,10 +99,13 @@ The rows serve as a 4-count beat visual metronome. We also alternate lighting up
 
 ### Encoder Knobs
 - Encoder knobs will allow setting values for the actively selected channel in the channel rack. The goal is to allow
-for tweaking plugin parameters directly from the MIDI controller and not require computer interaction. The user selects
-a channel they would like to tweak and then begins turning knobs. Pressing the "Next" button will cycle through
- different pages for that knob. Currently, all channels are assumed to be FLEX and uses the FLEX mappings, but this
-will change in future iterations.
+the encoder knobs to tweak plugin parameters directly from the MIDI controller and not require computer interaction.
+  - Model workflow: The user selects a channel they want to edit.
+  - They tweak the knobs or press the 'Next' button to cycle through the different knob mappings.
+  - Once they are done, they can continue tweaking knobs live while playing or switch to a different channel
+  - The knob mappings will update to the correct mapping when switching between channels with different plugins. 
+  
+- Currently, only FLEX plugin has been mapped out. All knobs and sliders are accessible from one of the knob pages.
 - The knobs will currently control plugin sliders/knobs and tries its best to pull any data from the plugin into the
  display.
 - Pressing the Next button (with bank button light off) will result in cycling through the different knob pages. The
@@ -116,8 +119,6 @@ on the MIDI device display along with the updated value. This only works with FL
 
 ## Remaining Work To Do
 - Map other plugins.
-- Figure out how to generate a unique identifier for each plugin corresponding to the channel. Doesn't seem to be an
- easy way.
 - Figure out what to use the encoder knobs and sliders for.
 - Figure out how to add a new instrument to the channel rack
  -Figure out how to have sliders/knobs tweak the plugin page.

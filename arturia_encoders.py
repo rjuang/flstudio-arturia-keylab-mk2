@@ -62,11 +62,9 @@ class ArturiaInputControls:
         # Limiter Type - 43
         # Reverb Mod Speed 44
         #
-
-
         self._knobs_map = {
             # Default mapping. Sequential. Good for debugging
-            'debug': [
+            '': [
                 self._plugin_map_for(range(0, 9)),
                 self._plugin_map_for(range(9, 18)),
                 self._plugin_map_for(range(18, 27)),
@@ -78,7 +76,7 @@ class ArturiaInputControls:
             ],
 
             # Mapping for FLEX plugin
-            '': [
+            'FLEX': [
                 # Sliders 1-8, Output Volume
                 self._plugin_map_for([10, 11, 12, 13, 14, 15, 16, 17, 36]),
                 # Filter knobs, Filter Env AHDSR
@@ -119,6 +117,9 @@ class ArturiaInputControls:
         return self
 
     def SetKnobMode(self, knob_mode):
+        if knob_mode not in self._knobs_map:
+            knob_mode = ''
+            log('WARNING', 'No encoder mapping for plugin "%s"' % knob_mode)
         self._knobs_mode = knob_mode
         self._knobs_mode_index = 0
         return self
