@@ -1,6 +1,7 @@
 import channels
 import general
 import midi
+import transport
 import ui
 
 from arturia_display import ArturiaDisplay
@@ -181,7 +182,9 @@ class ArturiaInputControls:
         return self
 
     def Refresh(self):
-        self._update_lights()
+        # Don't update lights if recording
+        if not transport.isRecording() and not transport.isPlaying():
+            self._update_lights()
 
     def _display_hint(self, hint_title, hint_value):
         hint_title = ArturiaDisplay.abbreviate(hint_title.upper())
