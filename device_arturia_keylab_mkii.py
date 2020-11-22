@@ -25,20 +25,15 @@ def OnInit():
 def OnIdle():
     _controller.paged_display().Refresh()
 
+
 def OnMidiMsg(event):
     if _processor.ProcessEvent(event):
         event.handled = True
 
 
-def OnProgramChange(event):
-    print('OnProgramChange')
-
-
 def OnRefresh(flags):
-    print('OnRefresh %d' % flags)
     _controller.Sync()
 
 
 def OnUpdateBeatIndicator(value):
-    print('OnUpdateBeatIndicator %d' % value)
     _controller.metronome().ProcessBeat(value)

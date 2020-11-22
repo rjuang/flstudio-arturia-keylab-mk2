@@ -207,7 +207,9 @@ class ArturiaInputControls:
 
         event_id = knobs[knob_index]()
         value = channels.incEventValue(event_id, delta, 0.01)
-        general.processRECEvent(event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint)
+        general.processRECEvent(
+            event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
+                             | midi.REC_UpdateControl | midi.REC_SetChanged)
         self._check_and_show_hint()
         if not self._knobs_mode:
             log('KNOBS', 'Knob offset=%d, REC EventId=%03d [%s]' % (
@@ -236,7 +238,9 @@ class ArturiaInputControls:
 
         event_id = sliders[slider_index]()
         value = self._to_rec_value(value)
-        general.processRECEvent(event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint)
+        general.processRECEvent(event_id, value,
+                                midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
+                                | midi.REC_UpdateControl | midi.REC_SetChanged)
         #self._check_and_show_hint()
         if not self._sliders_mode:
             log('SLIDERS', 'Slider offset=%d, REC EventId=%03d [%s]' % (
