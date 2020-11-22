@@ -78,8 +78,7 @@ class ArturiaInputControls:
 
             # Mapping for FLEX plugin
             'FLEX': [
-                # Sliders 1-8, Output Volume
-                self._plugin_map_for([10, 11, 12, 13, 14, 15, 16, 17, 36]),
+                # Note: Sliders associated with FLEX plugin are in the sliders map
                 # Filter knobs, Filter Env AHDSR
                 self._plugin_map_for([18, 20, 19, 5, 6, 7, 8, 9, 39]),
                 # Master knobs + type,  Volume Env AHDSR, Master ON/OFF
@@ -104,8 +103,10 @@ class ArturiaInputControls:
                 self._plugin_map_for(range(54, 63)),
                 self._plugin_map_for(range(63, 72)),
             ],
+            # Mapping for FLEX plugin
             'FLEX': [
-                self._plugin_map_for(range(10, 18)),
+                # Sliders 1-8, Output Volume
+                self._plugin_map_for([10, 11, 12, 13, 14, 15, 16, 17, 36]),
             ],
         }
         self._pending_slider_requests = {}
@@ -113,9 +114,11 @@ class ArturiaInputControls:
         self._knobs_mode_index = 0
         self._sliders_mode = ''
         self._sliders_mode_index = 0
-        self._last_hint_title = ''
         self._last_unknown_knob_mode = ''
         self._last_unknown_slider_mode = ''
+        self._last_hint_title = ''
+        self._last_hint_value = ''
+        self._last_hint_time_ms = 0
 
     def SetKnobs(self, base_fn=None, offset=None):
         if base_fn is not None:
@@ -234,12 +237,15 @@ class ArturiaInputControls:
         event_id = sliders[slider_index]()
         value = self._to_rec_value(value)
         general.processRECEvent(event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint)
-        self._check_and_show_hint()
+        #self._check_and_show_hint()
         if not self._sliders_mode:
             log('SLIDERS', 'Slider offset=%d, REC EventId=%03d [%s]' % (
                 slider_index + self._sliders_mode_index * len(sliders),
                 event_id, self._last_unknown_slider_mode))
         return self
+
+    def StartOrEndSliderInput(self):
+        self._check_and_show_hint()
 
     def Refresh(self):
         # Don't update lights if recording
@@ -254,8 +260,13 @@ class ArturiaInputControls:
             self._paged_display.display().ResetScroll()
 
         self._last_hint_title = hint_title
+        self._last_hint_value = hint_value
         self._paged_display.SetPageLines('hint', line1=hint_title, line2=hint_value)
-        self._paged_display.SetActivePage('hint', expires=5000)
+        current_time_ms = ArturiaDisplay.time_ms()
+
+        if current_time_ms > self._last_hint_time_ms + 100:
+            self._paged_display.SetActivePage('hint', expires=5000)
+            self._last_hint_time_ms = current_time_ms
 
     def _display_unset_slider(self):
         self._display_hint(' (SLIDER UNSET) ', ' ')

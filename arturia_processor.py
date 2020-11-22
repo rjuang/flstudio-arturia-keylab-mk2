@@ -70,7 +70,7 @@ class ArturiaMidiProcessor:
             .SetHandler(46, self.OnLivePart2, ignore_release)
 
             .SetHandlerForKeys(range(24, 32), self.OnBankSelect, ignore_release)
-            .SetHandlerForKeys(range(104, 112), self.OnSetActiveSliderTrack, ignore_release)
+            .SetHandlerForKeys(range(104, 112), self.OnStartOrEndSliderEvent)
         )
         self._knob_dispatcher = (
             MidiEventDispatcher(by_control_num)
@@ -340,4 +340,6 @@ class ArturiaMidiProcessor:
             channels.selectOneChannel(bank_index)
         debug.log('OnBankSelect', 'Selected bank index=%d' % bank_index, event=event)
 
-    def OnSetActiveSliderTrack(self, event): debug.log('OnSetActiveSliderTrack', 'Dispatched', event=event)
+    def OnStartOrEndSliderEvent(self, event):
+        debug.log('OnStartOrEndSliderEvent', 'Dispatched', event=event)
+        self._controller.encoders().StartOrEndSliderInput()
