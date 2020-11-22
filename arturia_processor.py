@@ -186,17 +186,12 @@ class ArturiaMidiProcessor:
     def OnKnobEvent(self, event):
         self._knob_dispatcher.Dispatch(event)
 
-    def _to_rec_value(self, value):
-        return int((value / 127.0) * midi.FromMIDI_Max)
-
     def OnSliderEvent(self, event):
         slider_index = event.status - event.midiId
         slider_value = event.controlVal
 
         debug.log('OnSliderEvent', 'Slider %d = %d' % (slider_index, slider_value), event=event)
-        event_id = midi.REC_Mixer_Vol + mixer.getTrackPluginId(slider_index + 1, 0)
-        general.processRECEvent(event_id, self._to_rec_value(slider_value),
-                                midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint )
+        self._controller.encoders().ProcessSliderInput(slider_index, slider_value)
 
     @staticmethod
     def _get_knob_delta(event):

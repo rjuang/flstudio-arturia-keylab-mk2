@@ -1,5 +1,5 @@
 # Enable to log messages out to console.
-DEBUG = True
+DEBUG = False
 
 def log(tag, message, event=None):
     """Log out messages to the script console if global DEBUG variable is True."""

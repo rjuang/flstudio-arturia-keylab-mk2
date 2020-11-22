@@ -71,6 +71,7 @@ class ArturiaController:
         # Update knob mode
         plugin_name = plugins.getPluginName(active_index) if plugins.isValid(active_index) else ''
         self._encoders.SetKnobMode(plugin_name)
+        self._encoders.SetSliderMode(plugin_name)
 
         self._paged_display.SetPageLines(
             'main',

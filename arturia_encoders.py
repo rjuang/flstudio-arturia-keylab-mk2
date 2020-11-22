@@ -94,15 +94,28 @@ class ArturiaInputControls:
         }
 
         self._sliders_map = {
-            '': [],
+            '': [
+                self._plugin_map_for(range(0, 9)),
+                self._plugin_map_for(range(9, 18)),
+                self._plugin_map_for(range(18, 27)),
+                self._plugin_map_for(range(27, 36)),
+                self._plugin_map_for(range(36, 45)),
+                self._plugin_map_for(range(45, 54)),
+                self._plugin_map_for(range(54, 63)),
+                self._plugin_map_for(range(63, 72)),
+            ],
+            'FLEX': [
+                self._plugin_map_for(range(10, 18)),
+            ],
         }
-
+        self._pending_slider_requests = {}
         self._knobs_mode = ''
         self._knobs_mode_index = 0
         self._sliders_mode = ''
         self._sliders_mode_index = 0
         self._last_hint_title = ''
-        self._last_unknown_mode = ''
+        self._last_unknown_knob_mode = ''
+        self._last_unknown_slider_mode = ''
 
     def SetKnobs(self, base_fn=None, offset=None):
         if base_fn is not None:
@@ -120,16 +133,22 @@ class ArturiaInputControls:
 
     def SetKnobMode(self, knob_mode):
         if knob_mode not in self._knobs_map:
-            self._last_unknown_mode = knob_mode
+            self._last_unknown_knob_mode = knob_mode
             log('WARNING', 'No encoder mapping for plugin <%s>' % knob_mode)
             knob_mode = ''
         else:
-            self._last_unknown_mode = ''
+            self._last_unknown_knob_mode = ''
         self._knobs_mode = knob_mode
         self._knobs_mode_index = 0
         return self
 
     def SetSliderMode(self, slider_mode):
+        if slider_mode not in self._sliders_map:
+            self._last_unknown_slider_mode = slider_mode
+            log('WARNING', 'No encoder mapping for plugin <%s>' % slider_mode)
+            slider_mode = ''
+        else:
+            self._last_unknown_slider_mode = ''
         self._sliders_mode = slider_mode
         self._sliders_mode_index = 0
         return self
@@ -138,9 +157,16 @@ class ArturiaInputControls:
         knob_key = self._knobs_mode
         if knob_key not in self._knobs_mode:
             # Knobs don't do anything
-            log('knobs', 'Invalid log mode %s' % knob_key)
+            log('knobs', 'Invalid knob mode %s' % knob_key)
             return []
         return self._knobs_map[knob_key]
+
+    def _get_slider_pages(self):
+        if self._sliders_mode not in self._sliders_mode:
+            # Sliders don't do anything
+            log('sliders', 'Invalid sliders mode %s' % self._sliders_mode)
+            return []
+        return self._sliders_map[self._sliders_mode]
 
     def NextKnobsPage(self):
         num_pages = len(self._get_knob_pages())
@@ -152,12 +178,16 @@ class ArturiaInputControls:
         return self
 
     def NextSlidersPage(self):
+        num_pages = len(self._get_slider_pages())
+        if num_pages == 0:
+            return
+        self._sliders_mode_index = (self._sliders_mode_index + 1) % num_pages
         self._update_lights()
-        pass
+        self._display_hint(' Sliders Mapping', '     %d of %d' % (self._sliders_mode_index + 1, num_pages))
+        return self
 
     def ProcessKnobInput(self, knob_index, delta):
         pages = self._get_knob_pages()
-
         if len(pages) == 0:
             # Knob mode is invalid
             self._display_unset_knob()
@@ -179,14 +209,36 @@ class ArturiaInputControls:
         if not self._knobs_mode:
             log('KNOBS', 'Knob offset=%d, REC EventId=%03d [%s]' % (
                 knob_index + self._knobs_mode_index * len(knobs),
-                event_id, self._last_unknown_mode))
+                event_id, self._last_unknown_knob_mode))
         return self
 
-    def ProcessSliderInput(self, slider_index, delta):
-        #event_id = self._sliders_base_event() + self._sliders_offset + slider_index
-        #value = channels.incEventValue(event_id, delta, 0.01)
-        #general.processRECEvent(event_id, value, midi.REC_UpdateValue)
-        #self._check_and_show_hint()
+    def _to_rec_value(self, value):
+        return int((value / 127.0) * midi.FromMIDI_Max)
+
+    def ProcessSliderInput(self, slider_index, value):
+        pages = self._get_slider_pages()
+        if len(pages) == 0:
+            # Slider mode is invalid
+            self._display_unset_slider()
+            return
+
+        # Assume index is always valid
+        sliders = pages[self._sliders_mode_index]
+
+        # Check if knob is mapped
+        if slider_index >= len(sliders):
+            # Slider is unmapped in the array
+            self._display_unset_slider()
+            return
+
+        event_id = sliders[slider_index]()
+        value = self._to_rec_value(value)
+        general.processRECEvent(event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint)
+        self._check_and_show_hint()
+        if not self._sliders_mode:
+            log('SLIDERS', 'Slider offset=%d, REC EventId=%03d [%s]' % (
+                slider_index + self._sliders_mode_index * len(sliders),
+                event_id, self._last_unknown_slider_mode))
         return self
 
     def Refresh(self):
@@ -204,6 +256,9 @@ class ArturiaInputControls:
         self._last_hint_title = hint_title
         self._paged_display.SetPageLines('hint', line1=hint_title, line2=hint_value)
         self._paged_display.SetActivePage('hint', expires=5000)
+
+    def _display_unset_slider(self):
+        self._display_hint(' (SLIDER UNSET) ', ' ')
 
     def _display_unset_knob(self):
         self._display_hint(' (KNOB UNSET) ', ' ')
