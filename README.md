@@ -97,29 +97,40 @@ The rows serve as a 4-count beat visual metronome. We also alternate lighting up
  controls.
 - The display will momentarily update with the value before going back to the default display.
 
-### Encoder Knobs
+### Encoder Knobs and Sliders
 - Encoder knobs will allow setting values for the actively selected channel in the channel rack. The goal is to allow
 the encoder knobs to tweak plugin parameters directly from the MIDI controller and not require computer interaction.
   - Model workflow: The user selects a channel they want to edit.
-  - They tweak the knobs or press the 'Next' button to cycle through the different knob mappings.
+  - They tweak the knobs/sliders or press the 'Next' button to cycle through the different knob mappings.
+  - They can cycle through the sliders by pressing the 'Prev' button.
   - Once they are done, they can continue tweaking knobs live while playing or switch to a different channel
   - The knob mappings will update to the correct mapping when switching between channels with different plugins. 
   
-- Currently, only FLEX plugin has been mapped out. All knobs and sliders are accessible from one of the knob pages.
-- The knobs will currently control plugin sliders/knobs and tries its best to pull any data from the plugin into the
+- Currently, only FLEX plugin has been mapped out. All knobs are mapped to the encoder knobs. All sliders (except the
+ pitch) are mapped tot the sliders.
+- The knobs will currently control plugin knobs and tries its best to pull any data from the plugin into the
+ display.
+- The sliders will control sliders in the plugin and also try its best to pull any data from the plugin into the
  display.
 - Pressing the Next button (with bank button light off) will result in cycling through the different knob pages. The
  display will update to show what page number and the PAD lights will also light up to show what page number it is
  mapping the knobs to. Note: The top 2 rows of the 4x4 pad-lights correspond to the knobs. The bottom 2 rows of the 4x4
  pad lights correspond to the sliders. Currently, I haven't mapped the sliders yet.
-- When the knobs are turned, it will pull the hint displayed to FL Studio, abbreviate any known words and display them
-on the MIDI device display along with the updated value. This only works with FLEX currently. Also to note, some plugins
-(e.g. Analog Lab 4) don't seem to provide any hint text to FL Studio.
-- FLEX plugins have 6 pages mapped out and correspond to groupings of buttons.
+- Pressing the Prev button (with bank button light off) will result in cycling through the different slider pages. The
+ display will update to show what page number and the PAD lights will also light up to show what page number it is 
+ mapping the sliders to.
+- When the knobs are turned (or sliders moved), it will pull the hint displayed to FL Studio, abbreviate any known words
+ and display them on the MIDI device display along with the updated value. This only works with FLEX currently. Also to
+  note, some plugins (e.g. Analog Lab 4) don't seem to provide any hint text to FL Studio.
+- FLEX plugins have 5 pages mapped out, with each page corresponding to a grouping of buttons that make sense. There is
+only one page of sliders. Only the pitch slider is mapped to a knob.
 
 ## Remaining Work To Do
 - Map other plugins.
-- Figure out what to use the encoder knobs and sliders for.
 - Figure out how to add a new instrument to the channel rack
- -Figure out how to have sliders/knobs tweak the plugin page.
+- Figure out if there's a way to manually label the params and display the believed value (or retrieve one).
+- Figure out how to detect when bank button is pressed (maybe retrieve the midi led status of the light on refresh ?)
+- Mapping for Mixer sliders / knobs.
+
+
 
