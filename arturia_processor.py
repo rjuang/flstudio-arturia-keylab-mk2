@@ -332,6 +332,12 @@ class ArturiaMidiProcessor:
         patterns.selectPattern(pattern_id, 1)
         return pattern_id
 
+    def _new_pattern_from_selected(self):
+        self._show_and_focus(midi.widPianoRoll)
+        ui.copy()
+        self._new_empty_pattern()
+        ui.paste()
+
     def _clone_active_pattern(self):
         active_channel = channels.selectedChannel()
         self._show_and_focus(midi.widChannelRack)
@@ -343,7 +349,10 @@ class ArturiaMidiProcessor:
 
     def OnTrackRecordShortPress(self, event):
         debug.log('OnTrackRecord Short', 'Dispatched', event=event)
-        self._new_empty_pattern()
+        if arrangement.selectionEnd() > arrangement.selectionStart():
+            self._new_pattern_from_selected()
+        else:
+            self._new_empty_pattern()
 
     def OnTrackRecordLongPress(self, event):
         debug.log('OnTrackRecord Long', 'Dispatched', event=event)
