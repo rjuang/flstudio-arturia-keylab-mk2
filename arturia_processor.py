@@ -214,7 +214,6 @@ class ArturiaMidiProcessor:
         if target_track == 0:
             mixer.setTrackName(target_track, '')
 
-
     def ProcessEvent(self, event):
         return self._midi_id_dispatcher.Dispatch(event)
 
