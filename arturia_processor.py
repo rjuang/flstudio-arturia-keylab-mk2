@@ -192,12 +192,28 @@ class ArturiaMidiProcessor:
         b = self.clip(0, 255, b + delta)
         channels.setChannelColor(channels.selectedChannel(), utils.RGBToColor(r, g, b))
 
+    def _channel_with_route_to_mixer_track(self, track):
+        max_channel = channels.channelCount()
+        for i in range(max_channel):
+            if channels.getTargetFxTrack(i) == track:
+                return i
+        return -1
+
     def OnUpdateTargetMixerTrack(self, delta):
-        max_track_idx = mixer.trackCount() - 1
-        current_track = mixer.trackNumber()
-        target_track = self.circular(0, max_track_idx, current_track + delta)
+        max_track_idx = mixer.trackCount() - 2   # One of the track is a control track
+        prev_track = channels.getTargetFxTrack(channels.selectedChannel())
+        target_track = self.circular(0, max_track_idx, prev_track + delta)
+        # Remember to unset the name of the previous pointed to track.
         mixer.setTrackNumber(target_track, midi.curfxMinimalLatencyUpdate)
         mixer.linkTrackToChannel(midi.ROUTE_ToThis)
+        channel_idx = self._channel_with_route_to_mixer_track(prev_track)
+        if channel_idx < 0:
+            mixer.setTrackName(prev_track, '')
+        elif mixer.getTrackName(prev_track) == mixer.getTrackName(target_track):
+            mixer.setTrackName(prev_track, channels.getChannelName(channel_idx))
+        if target_track == 0:
+            mixer.setTrackName(target_track, '')
+
 
     def ProcessEvent(self, event):
         return self._midi_id_dispatcher.Dispatch(event)
