@@ -59,6 +59,7 @@ buttons on the keyboard.
 - Undo button will only undo at most one step. If pressed a second time, it will redo the step
  (cancelling the undo). The undo LED lights up if there is an action to Undo. It is off if the action
  is already undone. When OFF, pressing the UNDO button will act as a REDO.
+- Long pressing UNDO will clear the active channel's pattern.
 
 #### Transports Buttons
 - The transports buttons is fully implemented.
@@ -138,7 +139,6 @@ Some ideas I came up with that would help with my workflow. Will consider adding
 
 - Pressing "New pattern" when a punch in/punch out selection has been made will create a new pattern with the 
 selection pasted in.
-- Long pressing UNDO will clear the current pattern.
 - Replace color red/green/blue entries with a single color scroller with simple presets of 4*4*4 colors where we permute
   R=range(0,255, 256/4), G=range(0,255, 256/4), and B=range(0,255, 256/4)
 

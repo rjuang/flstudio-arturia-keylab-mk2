@@ -245,8 +245,19 @@ class ArturiaMidiProcessor:
         self._controller.metronome().Reset()
         transport.stop()
 
+    def _show_and_focus(self, window):
+        if not ui.getVisible(window):
+            ui.showWindow(window)
+        if not ui.getFocused(window):
+            ui.setFocused(window)
+
     def OnTransportsPausePlay(self, event):
         debug.log('OnTransportsPausePlay', 'Dispatched', event=event)
+        song_mode = transport.getLoopMode() == 1
+        if song_mode:
+            self._show_and_focus(midi.widPlaylist)
+        else:
+            self._show_and_focus(midi.widPianoRoll)
         transport.globalTransport(midi.FPT_Play, midi.FPT_Play, event.pmeFlags)
 
     def OnTransportsRecord(self, event):
@@ -287,7 +298,7 @@ class ArturiaMidiProcessor:
     def OnGlobalUndoLongPress(self, event):
         debug.log('OnGlobalUndo (long press)', 'Dispatched', event=event)
         # Clear current pattern
-        ui.showWindow(midi.widChannelRack)
+        self._show_and_focus(midi.widChannelRack)
         ui.cut()
         self._display_hint('CLEARED ACTIVE', 'CHANNEL PATTERN')
 
@@ -323,7 +334,7 @@ class ArturiaMidiProcessor:
 
     def _clone_active_pattern(self):
         active_channel = channels.selectedChannel()
-        ui.showWindow(midi.widChannelRack)
+        self._show_and_focus(midi.widChannelRack)
         channels.selectAll()
         ui.copy()
         self._new_empty_pattern()
