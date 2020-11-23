@@ -83,7 +83,7 @@ class ArturiaMidiProcessor:
         def get_pitch_line(): return '    [%d%%]' % int (channels.getChannelPitch(channels.selectedChannel()) * 100)
         def get_time_position(): return ' [%d:%d:%d]' % (playlist.getVisTimeBar(), playlist.getVisTimeTick(), playlist.getVisTimeStep())
         def get_pattern_line(): return patterns.getPatternName(patterns.patternNumber())
-        def get_channel_line(): return '[%s]' % channels.getChannelName(channels.selectedChannel())
+        def get_channel_line(): return '[%s]' % (channels.getChannelName(channels.selectedChannel()))
         def get_plugin_line(): return '[%s]' % channels.getChannelName(channels.selectedChannel())
 
         def get_color_red_line():
@@ -98,23 +98,36 @@ class ArturiaMidiProcessor:
             r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
             return ' %3d  %3d [%3d]' % (r, g, b)
 
+        def get_target_mixer_track():
+            track = channels.getTargetFxTrack(channels.selectedChannel())
+            return '%d' % track if track > 0 else 'MASTER'
+
         self._navigation = (
             NavigationMode(self._controller.paged_display())
-            .AddMode('Set Volume', self.OnUpdateVolume, get_volume_line)
-            .AddMode('Set Panning', self.OnUpdatePanning, get_panning_line)
-            .AddMode('Set Pitch', self.OnUpdatePitch, get_pitch_line)
-            .AddMode('Set Time Marker', self.OnUpdateTimeMarker, get_time_position)
-            .AddMode('Set Color RED', self.OnUpdateColorRed, get_color_red_line)
-            .AddMode('Set Color GREEN', self.OnUpdateColorGreen, get_color_green_line)
-            .AddMode('Set Color BLUE', self.OnUpdateColorBlue, get_color_blue_line)
-            .AddMode('Set Pattern', self.OnUpdatePattern, get_pattern_line)
-            .AddMode('Select Channel', self.OnUpdateChannel, get_channel_line)
+            .AddMode('Volume', self.OnUpdateVolume, get_volume_line)
+            .AddMode('Panning', self.OnUpdatePanning, get_panning_line)
+            .AddMode('Pitch', self.OnUpdatePitch, get_pitch_line)
+            .AddMode('Time Marker', self.OnUpdateTimeMarker, get_time_position)
+            # TODO: Combine RED/GREEN/BLUE to a single preset
+            .AddMode('Red Color', self.OnUpdateColorRed, get_color_red_line)
+            .AddMode('Green Color', self.OnUpdateColorGreen, get_color_green_line)
+            .AddMode('Blue Color',  self.OnUpdateColorBlue, get_color_blue_line)
+            .AddMode('Target Mix Track', self.OnUpdateTargetMixerTrack, get_target_mixer_track)
+            .AddMode('Channel', self.OnUpdateChannel, get_channel_line)
+            .AddMode('Pattern', self.OnUpdatePattern, get_pattern_line)
             .AddMode('Plugin Preset', self.OnUpdatePlugin, get_plugin_line)
         )
         self._update_focus_time_ms = 0
         self._debug_value = 0
         # Mapping of string -> entry corresponding to scheduled long press task
         self._long_press_tasks = {}
+
+    def circular(self, low, high, x):
+        if x > high:
+            x = low + (x - high - 1)
+        elif x < low:
+            x = high - (low - x - 1)
+        return x
 
     def clip(self, low, high, x):
         return max(low, min(high, x))
@@ -178,6 +191,13 @@ class ArturiaMidiProcessor:
         r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
         b = self.clip(0, 255, b + delta)
         channels.setChannelColor(channels.selectedChannel(), utils.RGBToColor(r, g, b))
+
+    def OnUpdateTargetMixerTrack(self, delta):
+        max_track_idx = mixer.trackCount() - 1
+        current_track = mixer.trackNumber()
+        target_track = self.circular(0, max_track_idx, current_track + delta)
+        mixer.setTrackNumber(target_track, midi.curfxMinimalLatencyUpdate)
+        mixer.linkTrackToChannel(midi.ROUTE_ToThis)
 
     def ProcessEvent(self, event):
         return self._midi_id_dispatcher.Dispatch(event)

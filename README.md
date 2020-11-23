@@ -34,6 +34,8 @@ GLOBAL CONTROLS.
 - New Pattern will create a new pattern with a generic name, select it, and make it the active
  pattern. If this button is held down for a long press, then it will clone the active pattern instead and select
  the cloned pattern.
+- Pressing "New pattern" when a punch in/punch out selection has been made will create a new pattern with the 
+selection pasted in.
 - Prev. Pattern will move up the pattern list and select the previous pattern and make it active. This
  button has no effect if there is no previous pattern.
 - Next Pattern will move down the pattern list and select the next pattern and make it active. This
@@ -134,11 +136,13 @@ only one page of sliders. Only the pitch slider is mapped to a knob.
 - Figure out how to detect when bank button is pressed (maybe retrieve the midi led status of the light on refresh ?)
 - Mapping for Mixer sliders / knobs.
 
+## Known Issues
+- When creating a new pattern when a punch-in/punch-out selection exists, the result seems to be shifted by 1 bar.
+This seems to be a bug in FL Studio. Try copying a selection from a pattern and pasting it into a new pattern.
+
 ## Ideas to consider
 Some ideas I came up with that would help with my workflow. Will consider adding this at some point:
 
-- Pressing "New pattern" when a punch in/punch out selection has been made will create a new pattern with the 
-selection pasted in.
 - Replace color red/green/blue entries with a single color scroller with simple presets of 4*4*4 colors where we permute
   R=range(0,255, 256/4), G=range(0,255, 256/4), and B=range(0,255, 256/4)
 
