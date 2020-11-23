@@ -19,9 +19,9 @@ Then in FL Studio, goto `Options->Midi Settings` and select your Arturia device 
 
 Buttons in the DAW Commands/User section are mapped as follows:
 
-| Solo        |   Mute       |  New Pattern  | Prev. Pattern  | Next Pattern|
-|-------------|--------------|---------------|----------------|-------------|
-| Song Mode   |  Punch In    |  Punch Out    |  Metro         | Undo        |
+| Solo        |   Mute       |  New Pattern  (HOLD=Clone pattern) | Prev. Pattern  | Next Pattern|
+|-------------|--------------|------------------------------------|----------------|-------------|
+| Song Mode   |  Punch In    |  Punch Out                         |  Metro         | Undo        |
 
 Where the first row is the buttons under TRACK CONTROLS and the second row are buttons under
 GLOBAL CONTROLS.
@@ -32,7 +32,8 @@ GLOBAL CONTROLS.
 - Mute will mute the active channel selected in FL Studio's channel rack. The Mute LED will turn on
  if the channel is muted.
 - New Pattern will create a new pattern with a generic name, select it, and make it the active
- pattern.
+ pattern. If this button is held down for a long press, then it will clone the active pattern instead and select
+ the cloned pattern.
 - Prev. Pattern will move up the pattern list and select the previous pattern and make it active. This
  button has no effect if there is no previous pattern.
 - Next Pattern will move down the pattern list and select the next pattern and make it active. This
@@ -132,5 +133,12 @@ only one page of sliders. Only the pitch slider is mapped to a knob.
 - Figure out how to detect when bank button is pressed (maybe retrieve the midi led status of the light on refresh ?)
 - Mapping for Mixer sliders / knobs.
 
+## Ideas to consider
+Some ideas I came up with that would help with my workflow. Will consider adding this at some point:
 
+- Pressing "New pattern" when a punch in/punch out selection has been made will create a new pattern with the 
+selection pasted in.
+- Long pressing UNDO will clear the current pattern.
+- Replace color red/green/blue entries with a single color scroller with simple presets of 4*4*4 colors where we permute
+  R=range(0,255, 256/4), G=range(0,255, 256/4), and B=range(0,255, 256/4)
 

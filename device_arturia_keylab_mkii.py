@@ -23,7 +23,7 @@ def OnInit():
 
 
 def OnIdle():
-    _controller.paged_display().Refresh()
+    _controller.Idle()
 
 
 def OnMidiMsg(event):

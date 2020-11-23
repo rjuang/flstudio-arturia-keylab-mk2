@@ -55,7 +55,7 @@ class ArturiaMidiProcessor:
 
             .SetHandlerForKeys(range(8, 16), self.OnTrackSolo, ignore_release)
             .SetHandlerForKeys(range(16, 24), self.OnTrackMute, ignore_release)
-            .SetHandlerForKeys(range(0, 8), self.OnTrackRecord, ignore_release)
+            .SetHandlerForKeys(range(0, 8), self.OnTrackRecord)
 
             .SetHandler(74, self.OnTrackRead, ignore_release)
             .SetHandler(75, self.OnTrackWrite, ignore_release)
@@ -113,6 +113,8 @@ class ArturiaMidiProcessor:
         )
         self._update_focus_time_ms = 0
         self._debug_value = 0
+        # Mapping of string -> entry corresponding to scheduled long press task
+        self._long_press_tasks = {}
 
     def clip(self, low, high, x):
         return max(low, min(high, x))
@@ -286,12 +288,42 @@ class ArturiaMidiProcessor:
         debug.log('OnTrackMute', 'Dispatched', event=event)
         channels.muteChannel(channels.selectedChannel())
 
+    def _detect_long_press(self, event, short_fn, long_fn):
+        control_id = event.controlNum
+        if self._is_pressed(event):
+            task = self._controller.scheduler().ScheduleTask(lambda: long_fn(event), delay=450)
+            self._long_press_tasks[control_id] = task
+        else:
+            # Release event. Attempt to cancel the scheduled long press task.
+            if self._controller.scheduler().CancelTask(self._long_press_tasks[control_id]):
+                # Dispatch short function press if successfully cancelled the long press.
+                short_fn(event)
+
     def OnTrackRecord(self, event):
         debug.log('OnTrackRecord', 'Dispatched', event=event)
+        self._detect_long_press(event, self.OnTrackRecordShortPress, self.OnTrackRecordLongPress)
+
+    def _new_empty_pattern(self):
         pattern_id = patterns.patternCount() + 1
         patterns.setPatternName(pattern_id, 'Pattern %d' % pattern_id)
         patterns.jumpToPattern(pattern_id)
         patterns.selectPattern(pattern_id, 1)
+        return pattern_id
+
+    def _clone_active_pattern(self):
+        ui.showWindow(midi.widChannelRack)
+        channels.selectAll()
+        ui.copy()
+        self._new_empty_pattern()
+        ui.paste()
+
+    def OnTrackRecordShortPress(self, event):
+        debug.log('OnTrackRecord Short', 'Dispatched', event=event)
+        self._new_empty_pattern()
+
+    def OnTrackRecordLongPress(self, event):
+        debug.log('OnTrackRecord Long', 'Dispatched', event=event)
+        self._clone_active_pattern()
 
     def OnTrackRead(self, event):
         debug.log('OnTrackRead', 'Dispatched', event=event)

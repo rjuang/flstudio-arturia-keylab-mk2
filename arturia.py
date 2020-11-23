@@ -1,6 +1,5 @@
 import arrangement
 import channels
-import debug
 import general
 import patterns
 import plugins
@@ -12,11 +11,13 @@ from arturia_encoders import ArturiaInputControls
 from arturia_leds import ArturiaLights
 from arturia_metronome import VisualMetronome
 from arturia_pages import ArturiaPagedDisplay
+from arturia_scheduler import Scheduler
 
 
 class ArturiaController:
     """Controller responsible for managing all the different components in a single class. """
     def __init__(self):
+        self._scheduler = Scheduler()
         self._display = ArturiaDisplay()
         self._paged_display = ArturiaPagedDisplay(self._display)
         self._lights = ArturiaLights()
@@ -37,6 +38,9 @@ class ArturiaController:
 
     def encoders(self):
         return self._encoders
+
+    def scheduler(self):
+        return self._scheduler
 
     def Sync(self):
         """ Syncs up all visual indicators on keyboard with changes from FL Studio. """
@@ -78,3 +82,7 @@ class ArturiaController:
             line1='[%d:%d] %s' % (active_index + 1, pattern_number, channel_name),
             line2='%s' % pattern_name)
         self._encoders.Refresh()
+
+    def Idle(self):
+        self._scheduler.Idle()
+        self._paged_display.Refresh()
