@@ -51,7 +51,7 @@ class ArturiaMidiProcessor:
             .SetHandler(87, self.OnGlobalIn, ignore_release)
             .SetHandler(88, self.OnGlobalOut, ignore_release)
             .SetHandler(89, self.OnGlobalMetro, ignore_release)
-            .SetHandler(81, self.OnGlobalUndo, ignore_release)
+            .SetHandler(81, self.OnGlobalUndo)
 
             .SetHandlerForKeys(range(8, 16), self.OnTrackSolo, ignore_release)
             .SetHandlerForKeys(range(16, 24), self.OnTrackMute, ignore_release)
@@ -278,7 +278,18 @@ class ArturiaMidiProcessor:
 
     def OnGlobalUndo(self, event):
         debug.log('OnGlobalUndo', 'Dispatched', event=event)
+        self._detect_long_press(event, self.OnGlobalUndoShortPress, self.OnGlobalUndoLongPress)
+
+    def OnGlobalUndoShortPress(self, event):
+        debug.log('OnGlobalUndo (short press)', 'Dispatched', event=event)
         transport.globalTransport(midi.FPT_Undo, midi.FPT_Undo, event.pmeFlags)
+
+    def OnGlobalUndoLongPress(self, event):
+        debug.log('OnGlobalUndo (long press)', 'Dispatched', event=event)
+        # Clear current pattern
+        ui.showWindow(midi.widChannelRack)
+        ui.cut()
+        self._display_hint('CLEARED ACTIVE', 'CHANNEL PATTERN')
 
     def OnTrackSolo(self, event):
         debug.log('OnTrackSolo', 'Dispatched', event=event)
@@ -311,11 +322,13 @@ class ArturiaMidiProcessor:
         return pattern_id
 
     def _clone_active_pattern(self):
+        active_channel = channels.selectedChannel()
         ui.showWindow(midi.widChannelRack)
         channels.selectAll()
         ui.copy()
         self._new_empty_pattern()
         ui.paste()
+        channels.selectOneChannel(active_channel)
 
     def OnTrackRecordShortPress(self, event):
         debug.log('OnTrackRecord Short', 'Dispatched', event=event)
@@ -375,3 +388,11 @@ class ArturiaMidiProcessor:
     def OnStartOrEndSliderEvent(self, event):
         debug.log('OnStartOrEndSliderEvent', 'Dispatched', event=event)
         self._controller.encoders().StartOrEndSliderInput()
+
+    def _display_hint(self, line1=None, line2=None):
+        if line1 is None:
+            line1 = ' '
+        if line2 is None:
+            line2 = ' '
+        self._controller.paged_display().SetPageLines('hint', line1=line1, line2=line2)
+        self._controller.paged_display().SetActivePage('hint', expires=1500)
