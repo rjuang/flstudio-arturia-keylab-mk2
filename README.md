@@ -12,6 +12,8 @@ Documents/Image-Line/FL Studio/Settings/Hardware/
 Then in FL Studio, goto `Options->Midi Settings` and select your Arturia device (the DAW one) under
 `Input` section. Click the `Controller type` drop down and select `Arturia Keylab mkII`.
 
+IMPORTANT:
+When using your keyboard, make sure that you set it to use the DAW mode (i.e., the DAW button is selected as opposed to the User or Analog Lab buttons).
 
 ## What's Done
 
