@@ -3,6 +3,8 @@
 ## Overview
 The goal of this MIDI Script is to make Arturia Keylab mkII more friendlier to use with FL Studio.
 
+## Demo (of earlier version)
+[![](http://img.youtube.com/vi/QKSYk8M9E0I/0.jpg)](http://www.youtube.com/watch?v=QKSYk8M9E0I "Demo of Earlier Version of Script")
 
 ## Setting Up
 You can simply clone this project into the folder:
@@ -85,8 +87,13 @@ The rows serve as a 4-count beat visual metronome. We also alternate lighting up
 
 #### Channel Select Buttons
 - The Select buttons under the sliders will select channels 1-8 in the channel rack. 
-- I've yet to tie in the Next/Previous buttons for enabling channel selections above 8. 
-- No idea what to do with the Part 1/Part 2 buttons when the Live button is on.
+- The Next button will cycle through different "pages" for knobs.
+- The Prev button will cycle through different "pages" for sliders.
+- Press and hold the Next button to set the sliders/knobs to control channel plugin.
+- Press and hold the Prev button to set the sliders/knobs to control the mixer panel.
+- Make sure bank light button is off. If it is on, then you will need to press the Bank button to toggle it off. When
+ the bank light button is lit, the Next/Prev buttons will switch between the channel plugin and mixer panel modes
+ (i.e. same as long pressing Next/Prev when bank light button is off).
 
 #### Navigation Panel
 - The left and right arrows will cycle through various modes. These are:
@@ -136,7 +143,6 @@ only one page of sliders. Only the pitch slider is mapped to a knob.
 - Figure out how to add a new instrument to the channel rack
 - Figure out if there's a way to manually label the params and display the believed value (or retrieve one).
 - Figure out how to detect when bank button is pressed (maybe retrieve the midi led status of the light on refresh ?)
-- Mapping for Mixer sliders / knobs.
 
 ## Known Issues
 - When creating a new pattern when a punch-in/punch-out selection exists, the result seems to be shifted by 1 bar.
