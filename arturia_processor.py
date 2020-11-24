@@ -11,6 +11,7 @@ import ui
 import utils
 
 from arturia_display import ArturiaDisplay
+from arturia_encoders import ArturiaInputControls
 from arturia_midi import MidiEventDispatcher
 from arturia_navigation import NavigationMode
 from arturia_leds import ArturiaLights
@@ -64,8 +65,8 @@ class ArturiaMidiProcessor:
             .SetHandler(99, self.OnNavigationRight, ignore_release)
             .SetHandler(84, self.OnNavigationKnobPressed, ignore_release)
 
-            .SetHandler(49, self.OnBankNext, ignore_release)
-            .SetHandler(48, self.OnBankPrev, ignore_release)
+            .SetHandler(49, self.OnBankNext)
+            .SetHandler(48, self.OnBankPrev)
             .SetHandler(47, self.OnLivePart1, ignore_release)
             .SetHandler(46, self.OnLivePart2, ignore_release)
 
@@ -424,15 +425,34 @@ class ArturiaMidiProcessor:
         debug.log('DEBUG', 'Trying to show editor for %d' % channels.channelCount())
 
     def OnBankNext(self, event):
-        debug.log('OnBankNext', 'Dispatched', event=event)
+        self._detect_long_press(event, self.OnBankNextShortPress, self.OnBankNextLongPress)
+
+    def OnBankNextShortPress(self, event):
+        debug.log('OnBankNext (short)', 'Dispatched', event=event)
         self._controller.encoders().NextKnobsPage()
 
+    def OnBankNextLongPress(self, event):
+        debug.log('OnBankNext (long)', 'Dispatched', event=event)
+        self.OnLivePart1(event)
+
     def OnBankPrev(self, event):
-        debug.log('OnBankPrev', 'Dispatched', event=event)
+        self._detect_long_press(event, self.OnBankPrevShortPress, self.OnBankPrevLongPress)
+
+    def OnBankPrevShortPress(self, event):
+        debug.log('OnBankPrev (short)', 'Dispatched', event=event)
         self._controller.encoders().NextSlidersPage()
 
-    def OnLivePart1(self, event): debug.log('OnLivePart1', 'Dispatched', event=event)
-    def OnLivePart2(self, event): debug.log('OnLivePart2', 'Dispatched', event=event)
+    def OnBankPrevLongPress(self, event):
+        debug.log('OnBankPrev (long)', 'Dispatched', event=event)
+        self.OnLivePart2(event)
+
+    def OnLivePart1(self, event):
+        debug.log('OnLivePart1', 'Dispatched', event=event)
+        self._controller.encoders().SetCurrentMode(ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS)
+
+    def OnLivePart2(self, event):
+        debug.log('OnLivePart2', 'Dispatched', event=event)
+        self._controller.encoders().SetCurrentMode(ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW)
 
     def OnBankSelect(self, event):
         bank_index = event.controlNum - 24

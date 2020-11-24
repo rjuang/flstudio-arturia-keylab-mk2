@@ -1,6 +1,7 @@
 import channels
 import general
 import midi
+import mixer
 import transport
 import ui
 
@@ -17,6 +18,10 @@ class ArturiaInputControls:
      """
     INPUT_MODE_CHANNEL_PLUGINS = 0
     INPUT_MODE_MIXER_OVERVIEW = 1
+    MODE_NAMES = {
+        INPUT_MODE_CHANNEL_PLUGINS: 'Channel Plugin',
+        INPUT_MODE_MIXER_OVERVIEW: 'Mixer Panel',
+    }
     NUM_INPUT_MODES = 2
 
     @staticmethod
@@ -35,12 +40,33 @@ class ArturiaInputControls:
                              | midi.REC_UpdateControl | midi.REC_SetChanged)
 
     @staticmethod
+    def _set_mixer_param(param_id, value, incremental=False, track_index=0, plugin_index=0):
+        event_id = mixer.getTrackPluginId(track_index, plugin_index) + param_id
+        if incremental:
+            value = channels.incEventValue(event_id, value, 0.01)
+        else:
+            value = ArturiaInputControls._to_rec_value(value)
+        general.processRECEvent(
+            event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
+                             | midi.REC_UpdateControl | midi.REC_SetChanged)
+
+    @staticmethod
+    def _set_mixer_param_fn(param_id, incremental=False, track_index=0, plugin_index=0):
+        return lambda v: ArturiaInputControls._set_mixer_param(
+            param_id, v, incremental=incremental, track_index=track_index, plugin_index=plugin_index)
+
+    @staticmethod
     def _set_plugin_param_fn(param_id, incremental=False):
         return lambda v: ArturiaInputControls._set_plugin_param(param_id, v, incremental=incremental)
 
     @staticmethod
     def _plugin_map_for(offsets, incremental=False):
         return [ArturiaInputControls._set_plugin_param_fn(x, incremental=incremental) for x in offsets]
+
+    @staticmethod
+    def _mixer_map_for(param_id, track_indices, incremental=False):
+        return [ArturiaInputControls._set_mixer_param_fn(param_id, track_index=t, incremental=incremental)
+                for t in track_indices]
 
     def __init__(self, paged_display, lights):
         self._paged_display = paged_display
@@ -99,6 +125,17 @@ class ArturiaInputControls:
             ],
         }
 
+        self._sliders_map[ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW] = {
+            '': [self._mixer_map_for(midi.REC_Mixer_Vol, [1, 2, 3, 4, 5, 6, 7, 8, 0])],
+        }
+
+        self._knobs_map[ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW] = {
+            '': [
+                self._mixer_map_for(midi.REC_Mixer_Pan, [1, 2, 3, 4, 5, 6, 7, 8, 0], incremental=True),
+                self._mixer_map_for(midi.REC_Mixer_SS, [9, 10, 11, 4, 5, 6, 7, 8, 0], incremental=True),
+            ],
+        }
+
         self._pending_slider_requests = {}
         self._knobs_mode = ''
         self._knobs_mode_index = 0
@@ -146,20 +183,25 @@ class ArturiaInputControls:
         self._sliders_mode_index = 0
         return self
 
+    def SetCurrentMode(self, mode):
+        self._current_mode = mode
+        self._display_hint('Controlling', ArturiaInputControls.MODE_NAMES[mode])
+        self._update_lights()
+
+    def GetCurrentMode(self):
+        return self._current_mode
+
     def _get_knob_pages(self):
         knob_key = self._knobs_mode
-        if knob_key not in self._knobs_mode:
-            # Knobs don't do anything
-            log('knobs', 'Invalid knob mode %s' % knob_key)
-            return []
+        if knob_key not in self._knobs_map[self._current_mode]:
+            knob_key = ''
         return self._knobs_map[self._current_mode][knob_key]
 
     def _get_slider_pages(self):
-        if self._sliders_mode not in self._sliders_mode:
-            # Sliders don't do anything
-            log('sliders', 'Invalid sliders mode %s' % self._sliders_mode)
-            return []
-        return self._sliders_map[self._current_mode][self._sliders_mode]
+        sliders_key = self._sliders_mode
+        if sliders_key not in self._sliders_map[self._current_mode]:
+            sliders_key = ''
+        return self._sliders_map[self._current_mode][sliders_key]
 
     def NextKnobsPage(self):
         num_pages = len(self._get_knob_pages())
@@ -255,7 +297,7 @@ class ArturiaInputControls:
         lines = hint.split(':', 1)
         if len(lines) == 1:
             lines.append(' ')
-        self._display_hint(lines[0], lines[1])
+        self._display_hint(lines[0], lines[1][:16])
 
     def _get_pad_position(self, index):
         return int(index / 4) % 2, index % 4
@@ -269,3 +311,11 @@ class ArturiaInputControls:
         pad_values[knob_row][knob_col] = ArturiaLights.LED_ON
         pad_values[slider_row + 2][slider_col] = ArturiaLights.LED_ON
         self._lights.SetPadLights(pad_values)
+
+        is_channel_mode = self._current_mode == ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS
+        is_mixer_mode = self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW
+
+        self._lights.SetLights({
+            ArturiaLights.ID_BANK_NEXT: ArturiaLights.AsOnOffByte(is_channel_mode),
+            ArturiaLights.ID_BANK_PREVIOUS: ArturiaLights.AsOnOffByte(is_mixer_mode),
+        })
