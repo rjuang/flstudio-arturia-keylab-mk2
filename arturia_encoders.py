@@ -15,84 +15,84 @@ class ArturiaInputControls:
      more than 9 encoders/sliders. As such, we will allow mapping the Next/Previous buttons to
      different "pages".
      """
+    INPUT_MODE_CHANNEL_PLUGINS = 0
+    INPUT_MODE_MIXER_OVERVIEW = 1
+    NUM_INPUT_MODES = 2
 
     @staticmethod
-    def _plugin_rec_fn(idx):
-        return lambda: channels.getRecEventId(channels.selectedChannel()) + midi.REC_Chan_Plugin_First + idx
+    def _increment_plugin_param(param_id, delta):
+        event_id = channels.getRecEventId(channels.selectedChannel()) + midi.REC_Chan_Plugin_First + param_id
+        value = channels.incEventValue(event_id, delta, 0.01)
+        general.processRECEvent(
+            event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
+                             | midi.REC_UpdateControl | midi.REC_SetChanged)
+    @staticmethod
+    def _increment_plugin_param_fn(param_id):
+        return lambda delta: ArturiaInputControls._increment_plugin_param(param_id, delta)
 
     @staticmethod
-    def _plugin_map_for(offsets):
-        return [ArturiaInputControls._plugin_rec_fn(x) for x in offsets]
+    def _to_rec_value(value):
+        return int((value / 127.0) * midi.FromMIDI_Max)
+
+    @staticmethod
+    def _set_plugin_param(param_id, value):
+        event_id = channels.getRecEventId(channels.selectedChannel()) + midi.REC_Chan_Plugin_First + param_id
+        value = ArturiaInputControls._to_rec_value(value)
+        general.processRECEvent(
+            event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
+                             | midi.REC_UpdateControl | midi.REC_SetChanged)
+
+    @staticmethod
+    def _set_plugin_param_fn(param_id):
+        return lambda v: ArturiaInputControls._set_plugin_param(param_id, v)
+
+    @staticmethod
+    def _plugin_map_for(offsets, incremental=False):
+        if incremental:
+            return [ArturiaInputControls._increment_plugin_param_fn(x) for x in offsets]
+        else:
+            return [ArturiaInputControls._set_plugin_param_fn(x) for x in offsets]
 
     def __init__(self, paged_display, lights):
         self._paged_display = paged_display
         self._lights = lights
+        self._current_mode = ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS
 
-        # Maps a string containing the plugin name to an array of lambda functions containing
-        # page knob. Because there may be more knobs on the
+        # Maps a string containing the input control mode to another dictionary containing a mapping of
+        # the plugin names to an array of lambda functions to execute for the corresponding offset.
+        self._knobs_map = {}
+        self._sliders_map = {}
 
-        # Some notes
-        # For FLEX plugin:
-        # midi.REC_Chan_Plugin_First:
-        #  Vol Envelope : +0 - +4 -> A, H, D, S, R
-        #  Filter Envelope: ++5 -> +9 -> A, H , D, S, R
-        #  Sliders: +10, -> +17
-        # FCutoff: +18,
-        # Env Amt: +19
-        # Env Res: +20
-        # Master filter cutoff: +21
-        # Master res : 22
-        # Delay - mix - 25
-        # Delay - time - 26
-        # Delay - feedback 27
-        # Delay - mod - 28
-        # Delay - color - 29
-        # Reverb - mix - 30
-        # Reverb - decay - 31
-        # Reverb - size - 32
-        # Reverb - Mod - 33
-        # Reverb - Color - 34
-        # Limiter - Pre Vol - 35
-        # Output volume - 36
-        # Delay ON/Off - 37
-        # Reverb ON/Off- 38
-        # Pitch - 39
-        # Master Filter ON/OFF -40
-        # Limiter ON/OFF 41
-        # LMH Mix -42
-        # Limiter Type - 43
-        # Reverb Mod Speed 44
-        #
-        self._knobs_map = {
+        self._knobs_map[ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS] = {
             # Default mapping. Sequential. Good for debugging
             '': [
-                self._plugin_map_for(range(0, 9)),
-                self._plugin_map_for(range(9, 18)),
-                self._plugin_map_for(range(18, 27)),
-                self._plugin_map_for(range(27, 36)),
-                self._plugin_map_for(range(36, 45)),
-                self._plugin_map_for(range(45, 54)),
-                self._plugin_map_for(range(54, 63)),
-                self._plugin_map_for(range(63, 72)),
+                self._plugin_map_for(range(0, 9), incremental=True),
+                self._plugin_map_for(range(9, 18), incremental=True),
+                self._plugin_map_for(range(18, 27), incremental=True),
+                self._plugin_map_for(range(27, 36), incremental=True),
+                self._plugin_map_for(range(36, 45), incremental=True),
+                self._plugin_map_for(range(45, 54), incremental=True),
+                self._plugin_map_for(range(54, 63), incremental=True),
+                self._plugin_map_for(range(63, 72), incremental=True),
             ],
 
             # Mapping for FLEX plugin
             'FLEX': [
                 # Note: Sliders associated with FLEX plugin are in the sliders map
                 # Filter knobs, Filter Env AHDSR
-                self._plugin_map_for([18, 20, 19, 5, 6, 7, 8, 9, 39]),
+                self._plugin_map_for([18, 20, 19, 5, 6, 7, 8, 9, 39], incremental=True),
                 # Master knobs + type,  Volume Env AHDSR, Master ON/OFF
-                self._plugin_map_for([21, 22, 23, 0, 1, 2, 3, 4, 40]),
+                self._plugin_map_for([21, 22, 23, 0, 1, 2, 3, 4, 40], incremental=True),
                 # Delay buttons
-                self._plugin_map_for([25, 26, 27, 29, 28, 24, 37, 37, 37]),
+                self._plugin_map_for([25, 26, 27, 29, 28, 24, 37, 37, 37], incremental=True),
                 # Reverb buttons
-                self._plugin_map_for([30, 31, 32, 34, 33, 44, 38, 38, 38]),
+                self._plugin_map_for([30, 31, 32, 34, 33, 44, 38, 38, 38], incremental=True),
                 # Limiter
-                self._plugin_map_for([35, 42, 43, 41, 41, 41, 41, 41, 41]),
+                self._plugin_map_for([35, 42, 43, 41, 41, 41, 41, 41, 41], incremental=True),
             ],
         }
 
-        self._sliders_map = {
+        self._sliders_map[ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS] = {
             '': [
                 self._plugin_map_for(range(0, 9)),
                 self._plugin_map_for(range(9, 18)),
@@ -109,6 +109,7 @@ class ArturiaInputControls:
                 self._plugin_map_for([10, 11, 12, 13, 14, 15, 16, 17, 36]),
             ],
         }
+
         self._pending_slider_requests = {}
         self._knobs_mode = ''
         self._knobs_mode_index = 0
@@ -135,7 +136,7 @@ class ArturiaInputControls:
         return self
 
     def SetKnobMode(self, knob_mode):
-        if knob_mode not in self._knobs_map:
+        if knob_mode not in self._knobs_map[self._current_mode]:
             self._last_unknown_knob_mode = knob_mode
             log('WARNING', 'No encoder mapping for plugin <%s>' % knob_mode)
             knob_mode = ''
@@ -146,7 +147,7 @@ class ArturiaInputControls:
         return self
 
     def SetSliderMode(self, slider_mode):
-        if slider_mode not in self._sliders_map:
+        if slider_mode not in self._sliders_map[self._current_mode]:
             self._last_unknown_slider_mode = slider_mode
             log('WARNING', 'No encoder mapping for plugin <%s>' % slider_mode)
             slider_mode = ''
@@ -162,14 +163,14 @@ class ArturiaInputControls:
             # Knobs don't do anything
             log('knobs', 'Invalid knob mode %s' % knob_key)
             return []
-        return self._knobs_map[knob_key]
+        return self._knobs_map[self._current_mode][knob_key]
 
     def _get_slider_pages(self):
         if self._sliders_mode not in self._sliders_mode:
             # Sliders don't do anything
             log('sliders', 'Invalid sliders mode %s' % self._sliders_mode)
             return []
-        return self._sliders_map[self._sliders_mode]
+        return self._sliders_map[self._current_mode][self._sliders_mode]
 
     def NextKnobsPage(self):
         num_pages = len(self._get_knob_pages())
@@ -205,20 +206,9 @@ class ArturiaInputControls:
             self._display_unset_knob()
             return
 
-        event_id = knobs[knob_index]()
-        value = channels.incEventValue(event_id, delta, 0.01)
-        general.processRECEvent(
-            event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
-                             | midi.REC_UpdateControl | midi.REC_SetChanged)
+        knobs[knob_index](delta)
         self._check_and_show_hint()
-        if not self._knobs_mode:
-            log('KNOBS', 'Knob offset=%d, REC EventId=%03d [%s]' % (
-                knob_index + self._knobs_mode_index * len(knobs),
-                event_id, self._last_unknown_knob_mode))
         return self
-
-    def _to_rec_value(self, value):
-        return int((value / 127.0) * midi.FromMIDI_Max)
 
     def ProcessSliderInput(self, slider_index, value):
         pages = self._get_slider_pages()
@@ -235,17 +225,7 @@ class ArturiaInputControls:
             # Slider is unmapped in the array
             self._display_unset_slider()
             return
-
-        event_id = sliders[slider_index]()
-        value = self._to_rec_value(value)
-        general.processRECEvent(event_id, value,
-                                midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
-                                | midi.REC_UpdateControl | midi.REC_SetChanged)
-        #self._check_and_show_hint()
-        if not self._sliders_mode:
-            log('SLIDERS', 'Slider offset=%d, REC EventId=%03d [%s]' % (
-                slider_index + self._sliders_mode_index * len(sliders),
-                event_id, self._last_unknown_slider_mode))
+        sliders[slider_index](value)
         return self
 
     def StartOrEndSliderInput(self):
