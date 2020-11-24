@@ -20,38 +20,27 @@ class ArturiaInputControls:
     NUM_INPUT_MODES = 2
 
     @staticmethod
-    def _increment_plugin_param(param_id, delta):
-        event_id = channels.getRecEventId(channels.selectedChannel()) + midi.REC_Chan_Plugin_First + param_id
-        value = channels.incEventValue(event_id, delta, 0.01)
-        general.processRECEvent(
-            event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
-                             | midi.REC_UpdateControl | midi.REC_SetChanged)
-    @staticmethod
-    def _increment_plugin_param_fn(param_id):
-        return lambda delta: ArturiaInputControls._increment_plugin_param(param_id, delta)
-
-    @staticmethod
     def _to_rec_value(value):
         return int((value / 127.0) * midi.FromMIDI_Max)
 
     @staticmethod
-    def _set_plugin_param(param_id, value):
+    def _set_plugin_param(param_id, value, incremental=False):
         event_id = channels.getRecEventId(channels.selectedChannel()) + midi.REC_Chan_Plugin_First + param_id
-        value = ArturiaInputControls._to_rec_value(value)
+        if incremental:
+            value = channels.incEventValue(event_id, value, 0.01)
+        else:
+            value = ArturiaInputControls._to_rec_value(value)
         general.processRECEvent(
             event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
                              | midi.REC_UpdateControl | midi.REC_SetChanged)
 
     @staticmethod
-    def _set_plugin_param_fn(param_id):
-        return lambda v: ArturiaInputControls._set_plugin_param(param_id, v)
+    def _set_plugin_param_fn(param_id, incremental=False):
+        return lambda v: ArturiaInputControls._set_plugin_param(param_id, v, incremental=incremental)
 
     @staticmethod
     def _plugin_map_for(offsets, incremental=False):
-        if incremental:
-            return [ArturiaInputControls._increment_plugin_param_fn(x) for x in offsets]
-        else:
-            return [ArturiaInputControls._set_plugin_param_fn(x) for x in offsets]
+        return [ArturiaInputControls._set_plugin_param_fn(x, incremental=incremental) for x in offsets]
 
     def __init__(self, paged_display, lights):
         self._paged_display = paged_display
