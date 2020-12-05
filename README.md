@@ -131,8 +131,15 @@ The rows serve as a 4-count beat visual metronome. We also alternate lighting up
 - The display will momentarily update with the value before going back to the default display.
 
 ### Encoder Knobs and Sliders
-- Encoder knobs will allow setting values for the actively selected channel in the channel rack. The goal is to allow
-the encoder knobs to tweak plugin parameters directly from the MIDI controller and not require computer interaction.
+- Sliders and encoders will control either the mixer panel or the active channel plugin parameters.
+- If the "Part 1 / Next" light is glowing, then it is controlling the channel plugin.
+- If the "Part 2 / Prev" light is glowing, then it is controlling the mixer levels in the mixer panel.
+- Currently, when starting up, the "Part 2 / Prev" light will be selected and the sliders/knobs will control the
+ mixer levels in the mixer panel. Long press the Part 1 / Part 2 buttons to switch what the encoder knobs/sliders
+  control.
+- When controlling the channel plugin, encoder knobs will allow setting values for the actively selected channel in the
+ channel rack. The goal is to allow the encoder knobs to tweak plugin parameters directly from the MIDI controller and
+ not require computer interaction.
   - Model workflow: The user selects a channel they want to edit.
   - They tweak the knobs/sliders or press the 'Next' button to cycle through the different knob mappings.
   - They can cycle through the sliders by pressing the 'Prev' button.
@@ -163,6 +170,7 @@ only one page of sliders. Only the pitch slider is mapped to a knob.
 - Figure out how to add a new instrument to the channel rack
 - Figure out if there's a way to manually label the params and display the believed value (or retrieve one).
 - Figure out how to detect when bank button is pressed (maybe retrieve the midi led status of the light on refresh ?)
+- A HOWTO page and video snippets on doing different things to showcase the different features.
 
 ## Known Issues
 - When creating a new pattern when a punch-in/punch-out selection exists, the result seems to be shifted by 1 bar.
@@ -171,6 +179,7 @@ This seems to be a bug in FL Studio. Try copying a selection from a pattern and 
 ## Planned TODOs:
 - Fix mod/pitch wheel mapping
 - Determine whether "inactive" buttons (e.g. Category and Preset) buttons can be controlled from other midi device.
+ This would help with my decisions on what to do with navigation knob presses.
 
 ## Ideas to consider
 Some ideas I came up with that would help with my workflow. Will consider adding this at some point:
@@ -181,7 +190,6 @@ Some ideas I came up with that would help with my workflow. Will consider adding
   - Bank select mode:
     - default channel selection (so you can quickly pick instruments to play)
     - ability to cycle through mixer mute, recordd arm
-    
 - Long press navigation knob to switch knob functionality between:
   - left/right, up/down, modes (volume, panning, etc)
 - Pressing knob key sends F8 key and switches controls to left/right/up/down navigation... missing enter key here, 
