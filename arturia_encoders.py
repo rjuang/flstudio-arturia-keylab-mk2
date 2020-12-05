@@ -25,8 +25,8 @@ class ArturiaInputControls:
     NUM_INPUT_MODES = 2
 
     @staticmethod
-    def _to_rec_value(value):
-        return int((value / 127.0) * midi.FromMIDI_Max)
+    def _to_rec_value(value, limit=midi.FromMIDI_Max):
+        return int((value / 127.0) * limit)
 
     @staticmethod
     def _set_plugin_param(param_id, value, incremental=False):
@@ -45,7 +45,7 @@ class ArturiaInputControls:
         if incremental:
             value = channels.incEventValue(event_id, value, 0.01)
         else:
-            value = ArturiaInputControls._to_rec_value(value)
+            value = ArturiaInputControls._to_rec_value(value, limit=midi.FromMIDI_Max/512.0 * 125.0)
         general.processRECEvent(
             event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
                              | midi.REC_UpdateControl | midi.REC_SetChanged)
