@@ -1,6 +1,4 @@
-# name=Arturia Keylab mkII
-import ui
-
+# name=Arturia Keylab mkII DAW (MIDIIN2/MIDIOUT2)
 from arturia import ArturiaController
 from arturia_processor import ArturiaMidiProcessor
 

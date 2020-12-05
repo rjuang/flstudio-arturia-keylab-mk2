@@ -6,16 +6,36 @@ The goal of this MIDI Script is to make Arturia Keylab mkII more friendlier to u
 ## Demo (of earlier version)
 [![](http://img.youtube.com/vi/QKSYk8M9E0I/0.jpg)](http://www.youtube.com/watch?v=QKSYk8M9E0I "Demo of Earlier Version of Script")
 
+## Discussion Thread
+There is a discussion thread you can provide feedback or ask questions at [here](https://forum.image-line.com/viewtopic.php?f=1994&t=243170)
+
 ## Setting Up
 You can simply clone this project into the folder:
 ``` 
 Documents/Image-Line/FL Studio/Settings/Hardware/
 ```
 Then in FL Studio, goto `Options->Midi Settings` and select your Arturia device (the DAW one) under
-`Input` section. Click the `Controller type` drop down and select `Arturia Keylab mkII`.
+`Input` section.
 
-IMPORTANT:
-When using your keyboard, make sure that you set it to use the DAW mode (i.e., the DAW button is selected as opposed to the User or Analog Lab buttons).
+### For Macs ###
+
+Follow the tips and instructions [here](https://www.arturia.com/faq/keylabmkii/keylab-mkii-tips-tricks) for setting
+up the ports correctly.  Scroll down to "FL Studio" section at the very bottom of the link.
+
+In the instructions, instead of selecting "Mackie Control Universal" select my script
+`Arturia Keylab mkII DAW (MIDIIN2/MIDIOUT2)` under the scripts column.
+
+## For Windows ##
+Follow the tips and instructions [here](https://www.arturia.com/faq/keylabessential/keylab-essential-tips-tricks) for
+setting up the ports correctly. These are instructions for Keylab essential but the setup is the same as Keylab mkII.
+I reference this one because it has a screenshot from a Windows setup.
+
+In the instructions, instead of selecting "Mackie Control Universal" select my script
+`Arturia Keylab mkII DAW (MIDIIN2/MIDIOUT2)` under the scripts column.
+
+## IMPORTANT ##
+When using your keyboard, make sure that you set it to use the DAW mode (i.e., the DAW button is selected as opposed to
+the User or Analog Lab buttons).
 
 ## What's Done
 
@@ -148,9 +168,27 @@ only one page of sliders. Only the pitch slider is mapped to a knob.
 - When creating a new pattern when a punch-in/punch-out selection exists, the result seems to be shifted by 1 bar.
 This seems to be a bug in FL Studio. Try copying a selection from a pattern and pasting it into a new pattern.
 
+## Planned TODOs:
+- Fix mod/pitch wheel mapping
+- Determine whether "inactive" buttons (e.g. Category and Preset) buttons can be controlled from other midi device.
+
 ## Ideas to consider
 Some ideas I came up with that would help with my workflow. Will consider adding this at some point:
 
 - Replace color red/green/blue entries with a single color scroller with simple presets of 4*4*4 colors where we permute
   R=range(0,255, 256/4), G=range(0,255, 256/4), and B=range(0,255, 256/4)
+- Holding down the left/right navigation buttons will cycle through bank select modes
+  - Bank select mode:
+    - default channel selection (so you can quickly pick instruments to play)
+    - ability to cycle through mixer mute, recordd arm
+    
+- Long press navigation knob to switch knob functionality between:
+  - left/right, up/down, modes (volume, panning, etc)
+- Pressing knob key sends F8 key and switches controls to left/right/up/down navigation... missing enter key here, 
+ so might not be useful to entertain this idea.
+- Long pressing pad keys triggers recording a local pattern for that key to midiscript until that key is pressed again.
+ Pressing the keypad to trigger the saved snippet pattern. Thoughts: this will make long pressing pad keys for playing
+ impossible. Does anyone actually press and hold the drump pad keys ?
+ 
+
 

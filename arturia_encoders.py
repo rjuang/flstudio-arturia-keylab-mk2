@@ -71,7 +71,7 @@ class ArturiaInputControls:
     def __init__(self, paged_display, lights):
         self._paged_display = paged_display
         self._lights = lights
-        self._current_mode = ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS
+        self._current_mode = ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW
 
         # Maps a string containing the input control mode to another dictionary containing a mapping of
         # the plugin names to an array of lambda functions to execute for the corresponding offset.
