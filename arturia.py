@@ -78,6 +78,9 @@ class ArturiaController:
             self._encoders.SetKnobMode(plugin_name)
             self._encoders.SetSliderMode(plugin_name)
 
+        if channel_name.startswith('Analog Lab'):
+            channel_name='Analog Lab'
+
         self._paged_display.SetPageLines(
             'main',
             line1='[%d:%d] %s' % (active_index + 1, pattern_number, channel_name),

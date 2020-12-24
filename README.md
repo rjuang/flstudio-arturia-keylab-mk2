@@ -25,6 +25,9 @@ up the ports correctly.  Scroll down to "FL Studio" section at the very bottom o
 In the instructions, instead of selecting "Mackie Control Universal" select my script
 `Arturia Keylab mkII DAW (MIDIIN2/MIDIOUT2)` under the scripts column.
 
+Note that there will be another script called `Arturia Keylab mkII (MIDI)`. This is an optional script for enabling
+Analog Lab. You can set `Keylab mkII XX MIDI` to this script. 
+
 ## For Windows ##
 Follow the tips and instructions [here](https://www.arturia.com/faq/keylabessential/keylab-essential-tips-tricks) for
 setting up the ports correctly. These are instructions for Keylab essential but the setup is the same as Keylab mkII.
@@ -33,9 +36,17 @@ I reference this one because it has a screenshot from a Windows setup.
 In the instructions, instead of selecting "Mackie Control Universal" select my script
 `Arturia Keylab mkII DAW (MIDIIN2/MIDIOUT2)` under the scripts column.
 
+Note that there will be another script called `Arturia Keylab mkII (MIDI)`. This is an optional script for enabling
+Analog Lab. You can set `Arturia Keylab mkII` device to this script. 
+
 ## IMPORTANT ##
 When using your keyboard, make sure that you set it to use the DAW mode (i.e., the DAW button is selected as opposed to
 the User or Analog Lab buttons).
+
+If you would like to use Analog Lab plugins and control it with the "Analog Lab" mode button, you'll need to configure
+Analog Lab plugin's MIDI In port to "10 + the channel number". This needs to be done for each plugin that is to be
+controlled with Analog Lab mode. For example, if the "Analog Lab 4" is added to channel rack for channel 5, then the
+MIDI In port for the plugin needs to be set to 15.  TODO: Add video explaining this.
 
 ## What's Done
 
@@ -177,9 +188,12 @@ only one page of sliders. Only the pitch slider is mapped to a knob.
 This seems to be a bug in FL Studio. Try copying a selection from a pattern and pasting it into a new pattern.
 
 ## Planned TODOs:
-- Fix mod/pitch wheel mapping
-- Determine whether "inactive" buttons (e.g. Category and Preset) buttons can be controlled from other midi device.
- This would help with my decisions on what to do with navigation knob presses.
+- Fix mod/pitch wheel mapping.
+- Hold down "Solo" button to switch bank mapping buttons to toggle solo for mixer/channel track 1 - 8 (
+depending if active mixer mode or channel mode)
+- Hold down "Mute" button to switch bank mapping buttons to toggle mute for mixer/channel track 1 - 8 (
+depending if active mixer mode or channel mode)
+- Hold down "Record" button to switch bank mapping buttons to toggle arm "disk" recording for track 1 - 8 
 
 ## Ideas to consider
 Some ideas I came up with that would help with my workflow. Will consider adding this at some point:
