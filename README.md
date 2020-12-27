@@ -10,6 +10,8 @@ The goal of this MIDI Script is to make Arturia Keylab mkII more friendlier to u
 There is a discussion thread you can provide feedback or ask questions at [here](https://forum.image-line.com/viewtopic.php?f=1994&t=243170)
 
 ## Setting Up
+Video link describing setup below:
+
 [![](http://img.youtube.com/vi/TXZ3u1srTmw/0.jpg)](http://www.youtube.com/watch?v=TXZ3u1srTmw "Video showing how to install script into FL Studio")
 
 You can simply clone this project into the folder:
