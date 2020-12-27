@@ -3,8 +3,8 @@
 ## Overview
 The goal of this MIDI Script is to make Arturia Keylab mkII more friendlier to use with FL Studio.
 
-## Demo (of earlier version)
-[![](http://img.youtube.com/vi/QKSYk8M9E0I/0.jpg)](http://www.youtube.com/watch?v=QKSYk8M9E0I "Demo of Earlier Version of Script")
+## Demo (updated video, some changes to default start since recording)
+[![](http://img.youtube.com/vi/Ts2SnW9r2fc/0.jpg)](http://www.youtube.com/watch?v=Ts2SnW9r2fc "Updated Demo of Script")
 
 ## Discussion Thread
 There is a discussion thread you can provide feedback or ask questions at [here](https://forum.image-line.com/viewtopic.php?f=1994&t=243170)
