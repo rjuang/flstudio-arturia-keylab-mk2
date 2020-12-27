@@ -10,12 +10,17 @@ The goal of this MIDI Script is to make Arturia Keylab mkII more friendlier to u
 There is a discussion thread you can provide feedback or ask questions at [here](https://forum.image-line.com/viewtopic.php?f=1994&t=243170)
 
 ## Setting Up
+[![](http://img.youtube.com/vi/TXZ3u1srTmw/0.jpg)](http://www.youtube.com/watch?v=TXZ3u1srTmw "Video showing how to install script into FL Studio")
+
 You can simply clone this project into the folder:
 ``` 
 Documents/Image-Line/FL Studio/Settings/Hardware/
 ```
 Then in FL Studio, goto `Options->Midi Settings` and select your Arturia device (the DAW one) under
 `Input` section.
+
+IMPORTANT: Make sure the scripts are in a subfolder within the Hardware folder. Otherwise, FL Studio will ignore the
+files.
 
 ### For Macs ###
 
