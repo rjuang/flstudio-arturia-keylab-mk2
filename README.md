@@ -184,6 +184,14 @@ The rows serve as a 4-count beat visual metronome. We also alternate lighting up
 - FLEX plugins have 5 pages mapped out, with each page corresponding to a grouping of buttons that make sense. There is
 only one page of sliders. Only the pitch slider is mapped to a knob.
 
+## Programmable Pads
+- You can record sequences from any channels into a pad button (and yes, you can even switch channels and record
+ multiple key presses into a pad!)
+- To put a drum pad into recording mode, hold it for 1 second until it starts blinking.
+- Switch to any channel you desire. Press a key on the keyboard or sequence of keys. You are welcome to change channels
+as fast as you can. The initial and ending silence are ignored.
+- To exit recording mode, press any drum key.
+
 ## Remaining Work To Do
 - Map other plugins.
 - Figure out how to add a new instrument to the channel rack
