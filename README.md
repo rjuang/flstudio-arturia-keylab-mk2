@@ -194,6 +194,9 @@ as fast as you can. The initial and ending silence are ignored.
 - Note: the programmed customizations do get saved to the current project. Because FL Studio midi script API restricts 
 disk access from midi script, I'm forced to embed the mapping in the name of a mixer track. You will see the very far 
 left mixer (denoted by the letter "C") have a strange name with the string "DO NOT EDIT".
+- Looping: To put a drum pad playback in an infinite loop, hold down the sustain pedal (you will need to have a sustain pedal
+attached) and then press the drum pad key. You can release the sustain pedal. It will keep looping the pattern. You
+can stop the loop by pressing the drum pad again. It will finish the current sequence before halting playback.
 
 ## Remaining Work To Do
 - Map other plugins.
