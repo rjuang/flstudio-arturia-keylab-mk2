@@ -34,7 +34,7 @@ class ArturiaInputControls:
         if incremental:
             value = channels.incEventValue(event_id, value, 0.01)
         else:
-            value = ArturiaInputControls._to_rec_value(value)
+            value = ArturiaInputControls._to_rec_value(value, limit=65536)
         general.processRECEvent(
             event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
                              | midi.REC_UpdateControl | midi.REC_SetChanged)
