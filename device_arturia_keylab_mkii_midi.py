@@ -26,6 +26,7 @@ _lights = ArturiaLights()
 
 _pad_recording_led = False
 _pad_recording_task = None
+_sustain_enabled = False
 _fallback_pad_values = {}
 _longpress_status = {}
 
@@ -47,8 +48,9 @@ def OnShortPressDrumPad(event):
         _scheduler.CancelTask(_pad_recording_task)
         _pad_recording_task = None
     else:
-        log('midi', 'Play. short press detected for %s' % str(note))
-        if not _recorder.Play(note):
+        global _sustain_enabled
+        log('midi', 'Play. short press detected for %s. Sustain=%s' % (str(note), _sustain_enabled))
+        if not _recorder.Play(note, loop=_sustain_enabled):
             channels.midiNoteOn(channels.selectedChannel(), note, _fallback_pad_values[note])
 
 
@@ -100,6 +102,10 @@ def OnMidiMsg(event):
         portNum = 10
         message = event.status + (event.data1 << 8) + (event.data2 << 16) + (portNum << 24)
         device.forwardMIDICC(message, 2)
+
+        if event.data1 == 64:
+            global _sustain_enabled
+            _sustain_enabled = (event.data2 == 127)
 
         # Don't suppress sustain pedal
         if event.data1 != 64:

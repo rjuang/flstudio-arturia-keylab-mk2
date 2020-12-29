@@ -1,4 +1,5 @@
 import channels
+import mixer
 import time
 
 from debug import log
@@ -11,6 +12,7 @@ class Recorder:
         # List of tuples containing (time, channel note, velocity)
         self._recording = None
         self._savedata = savedata
+        self._looping = set()
 
     def OnMidiNote(self, event):
         recording_key = self._recording
@@ -38,11 +40,10 @@ class Recorder:
     def _ScheduleNote(self, channel, note, velocity, delay_ms):
         self._scheduler.ScheduleTask(lambda: channels.midiNoteOn(channel, note, velocity), delay=delay_ms)
 
-    def Play(self, key):
-        # Make sure all channels are selected
-        values = self._savedata.Get(str(key))
-        if not values:
-            return False
+    def _SchedulePlay(self, key, values, check_looping=False):
+        if check_looping and key not in self._looping:
+            return
+
         timestamp_base = values[0]
         for i in range(0, len(values), 4):
             timestamp, channel, note, velocity = values[i:i+4]
@@ -53,4 +54,30 @@ class Recorder:
             else:
                 # Schedule for playback later
                 self._ScheduleNote(channel, note, velocity, delay_ms)
+
+        if key in self._looping:
+            # Make sure to schedule in a delay of one beat for the last note to finish playing. Otherwise, they will
+            # overlap
+            bpm = mixer.getCurrentTempo() / 1000
+            beat_interval_ms = 60000 / bpm
+            log('recorder', 'Scheduling loop for drum pattern=%d' % key)
+            self._scheduler.ScheduleTask(lambda: self._SchedulePlay(key, values, check_looping=True),
+                                         delay=delay_ms + beat_interval_ms)
+
+    def Play(self, key, loop=False):
+        log('recorder', 'Playing drum pattern for %s. Loop=%s' % (key, loop))
+        # Make sure all channels are selected
+        if key in self._looping:
+            # Stop playing loop
+            self._looping.remove(key)
+            return True
+
+        if loop:
+            self._looping.add(key)
+
+        values = self._savedata.Get(str(key))
+        if not values:
+            return False
+        self._SchedulePlay(key, values)
+
         return True
