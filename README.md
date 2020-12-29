@@ -191,6 +191,9 @@ only one page of sliders. Only the pitch slider is mapped to a knob.
 - Switch to any channel you desire. Press a key on the keyboard or sequence of keys. You are welcome to change channels
 as fast as you can. The initial and ending silence are ignored.
 - To exit recording mode, press any drum key.
+- Note: the programmed customizations do get saved to the current project. Because FL Studio midi script API restricts 
+disk access from midi script, I'm forced to embed the mapping in the name of a mixer track. You will see the very far 
+left mixer (denoted by the letter "C") have a strange name with the string "DO NOT EDIT".
 
 ## Remaining Work To Do
 - Map other plugins.
