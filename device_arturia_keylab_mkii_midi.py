@@ -5,6 +5,7 @@ import device
 from arturia_leds import ArturiaLights
 from arturia_scheduler import Scheduler
 from arturia_recorder import Recorder
+from arturia_savedata import SaveData
 
 from debug import log
 # --------------------[ MIDI Script Integration Events for FL Studio ]---------------------------
@@ -19,7 +20,8 @@ MIDI_DRUM_PAD_DATA1_MIN = 36
 MIDI_DRUM_PAD_DATA1_MAX = 51
 
 _scheduler = Scheduler()
-_recorder = Recorder(_scheduler)
+_savedata = SaveData()
+_recorder = Recorder(_scheduler, _savedata)
 _lights = ArturiaLights()
 
 _pad_recording_led = False
@@ -30,6 +32,10 @@ _longpress_status = {}
 
 def OnInit():
     print('Loaded MIDI script for Arturia Keylab mkII MIDI')
+
+
+def OnRefresh(flags):
+    _savedata.Load()
 
 
 def OnShortPressDrumPad(event):
@@ -102,6 +108,7 @@ def OnMidiMsg(event):
         _recorder.OnMidiNote(event)
 
     log('midi', 'status: %d, data1: %d, data2: %d handled: %s' % (event.status, event.data1, event.data2, str(event.handled)))
+
 
 def OnIdle():
     _scheduler.Idle()

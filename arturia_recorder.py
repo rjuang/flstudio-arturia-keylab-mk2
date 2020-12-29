@@ -5,13 +5,12 @@ from debug import log
 
 class Recorder:
     """MIDI Sequence recorder and playback."""
-    def __init__(self, scheduler):
+    def __init__(self, scheduler, savedata):
         self._scheduler = scheduler
 
         # List of tuples containing (time, channel note, velocity)
-        self._events = {}
-        self._channels = {}
         self._recording = None
+        self._savedata = savedata
 
     def OnMidiNote(self, event):
         recording_key = self._recording
@@ -20,23 +19,18 @@ class Recorder:
             return
         timestamp = int(round(time.time() * 1000))
         channel = channels.selectedChannel()
-        # In case channel switching occurs, or multi-devices recording to different notes, make sure to record this.
-        if recording_key not in self._channels:
-            self._channels[recording_key] = set()
-        self._channels[recording_key].add(channel)
-        if recording_key not in self._events:
-            self._events[recording_key] = []
-        self._events[recording_key].append((timestamp, channel, event.note, event.velocity))
+        self._savedata.Get(recording_key).extend([timestamp, channel, event.note, event.velocity])
 
     def StartRecording(self, key):
-        self._recording = key
-        self._events[key] = []
-        self._channels[key] = set()
+        self._recording = str(key)
+        # Make sure to clear the previous data on new recording
+        self._savedata.Put(self._recording, [])
         log('recorder', 'Start recording: %s' % str(self._recording))
 
     def StopRecording(self):
         log('recorder', 'Stop recording: %s' % str(self._recording))
         self._recording = None
+        self._savedata.Commit()
 
     def IsRecording(self):
         return self._recording is not None
@@ -46,12 +40,12 @@ class Recorder:
 
     def Play(self, key):
         # Make sure all channels are selected
-        if key not in self._events or not self._events[key]:
-            # Nothing recorded for playback so return.
+        values = self._savedata.Get(str(key))
+        if not values:
             return False
-
-        timestamp_base = self._events[key][0][0]
-        for timestamp, channel, note, velocity in self._events[key]:
+        timestamp_base = values[0]
+        for i in range(0, len(values), 4):
+            timestamp, channel, note, velocity = values[i:i+4]
             delay_ms = timestamp - timestamp_base
             if delay_ms <= 0:
                 # Play now
