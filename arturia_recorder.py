@@ -21,7 +21,10 @@ class Recorder:
             return
         timestamp = int(round(time.time() * 1000))
         channel = channels.selectedChannel()
-        self._savedata.Get(recording_key).extend([timestamp, channel, event.note, event.velocity])
+        velocity = event.velocity
+        if event.status == 0x80:
+            velocity = 0
+        self._savedata.Get(recording_key).extend([timestamp, channel, event.note, velocity])
 
     def StartRecording(self, key):
         self._recording = str(key)

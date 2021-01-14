@@ -110,7 +110,7 @@ def OnMidiMsg(event):
         # Don't suppress sustain pedal
         if event.data1 != 64:
             event.handled = True
-    elif event.status == 144:  # Midi note on
+    elif event.status in (144, 128):  # Midi note on
         _recorder.OnMidiNote(event)
 
     log('midi', 'status: %d, data1: %d, data2: %d handled: %s' % (event.status, event.data1, event.data2, str(event.handled)))
