@@ -98,6 +98,11 @@ class ArturiaLights:
 
     SET_COLOR_COMMAND = bytes([0x02, 0x00, 0x10])
 
+    def __init__(self, send_fn=None):
+        if send_fn is None:
+            send_fn = send_to_device
+        self._send_fn = send_fn
+
     @staticmethod
     def AsOnOffByte(is_on):
         """Converts a boolean to the corresponding on/off to use in the method calls of this class."""
@@ -131,4 +136,4 @@ class ArturiaLights:
         data = bytes([])
         for led_id, led_value in led_mapping.items():
             data += bytes([led_id, led_value])
-        send_to_device(ArturiaLights.SET_COLOR_COMMAND + data)
+        self._send_fn(ArturiaLights.SET_COLOR_COMMAND + data)

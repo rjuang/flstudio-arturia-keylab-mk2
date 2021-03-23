@@ -1,7 +1,10 @@
 # name=Arturia Keylab mkII (MIDI)
+# url=https://github.com/rjuang/flstudio-arturia-keylab-mk2
+# receiveFrom=Arturia Keylab mkII DAW (MIDIIN2/MIDIOUT2)
 import channels
 import device
 
+import arturia_midi
 from arturia_leds import ArturiaLights
 from arturia_scheduler import Scheduler
 from arturia_recorder import Recorder
@@ -19,10 +22,16 @@ MIDI_DRUM_PAD_STATUS_OFF = 137
 MIDI_DRUM_PAD_DATA1_MIN = 36
 MIDI_DRUM_PAD_DATA1_MAX = 51
 
+
+def dispatch_to_other_scripts(payload):
+    arturia_midi.dispatch_message_to_other_scripts(
+        arturia_midi.INTER_SCRIPT_STATUS_BYTE, 0, 0, payload=payload)
+
+
 _scheduler = Scheduler()
 _savedata = SaveData()
 _recorder = Recorder(_scheduler, _savedata)
-_lights = ArturiaLights()
+_lights = ArturiaLights(send_fn=dispatch_to_other_scripts)
 
 _pad_recording_led = False
 _pad_recording_task = None
@@ -74,8 +83,10 @@ def BlinkLight(note):
         _lights.SetLights({led_id: ArturiaLights.AsOnOffByte(_pad_recording_led)})
         _pad_recording_task = _scheduler.ScheduleTask(lambda: BlinkLight(note), delay=1000)
 
+
 def OnMidiMsg(event):
     note = event.data1
+    log_msg = True
     if event.status == MIDI_DRUM_PAD_STATUS_ON or event.status == 153:
         if MIDI_DRUM_PAD_DATA1_MIN <= note <= MIDI_DRUM_PAD_DATA1_MAX:
             event.handled = True
@@ -93,8 +104,7 @@ def OnMidiMsg(event):
                     log('midi', 'Long press canceled for %s' % str(event.data1))
                     OnShortPressDrumPad(event)
                 del _longpress_status[event.data1]
-
-    elif event.status == 176:
+    elif event.status == 176 or event.status == 224:
         if event.data1 == 118 and event.data2 == 127:
             # User switched to Analog Lab mode.
             log('analoglab', 'Switched to Analog Lab.')
@@ -107,14 +117,17 @@ def OnMidiMsg(event):
             global _sustain_enabled
             _sustain_enabled = (event.data2 == 127)
 
-        # Don't suppress sustain pedal
-        if event.data1 != 64:
+        # Don't suppress sustain pedal or pitch bend
+        if event.status == 176 and event.data1 not in (1, 64):
             event.handled = True
     elif event.status in (144, 128):  # Midi note on
         _recorder.OnMidiNote(event)
+    elif (event.status == arturia_midi.INTER_SCRIPT_STATUS_BYTE and
+          event.data1 == arturia_midi.INTER_SCRIPT_DATA1_IDLE_CMD):
+        _scheduler.Idle()
+        event.handled = True
+        log_msg = False
 
-    log('midi', 'status: %d, data1: %d, data2: %d handled: %s' % (event.status, event.data1, event.data2, str(event.handled)))
+    if log_msg:
+        log('midi', 'status: %d, data1: %d, data2: %d handled: %s' % (event.status, event.data1, event.data2, str(event.handled)))
 
-
-def OnIdle():
-    _scheduler.Idle()

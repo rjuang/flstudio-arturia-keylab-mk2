@@ -1,6 +1,13 @@
 import debug
 import device
 
+# Status command to use when sending commands between scripts
+INTER_SCRIPT_STATUS_BYTE = 0x00
+INTER_SCRIPT_DATA1_IDLE_CMD = 0x00
+INTER_SCRIPT_DATA1_BEGIN_PAYLOAD_CMD = 0xFE
+INTER_SCRIPT_DATA1_END_PAYLOAD_CMD = 0xFF
+PAYLOAD_STATUS_BYTE = 0x01
+
 
 class MidiEventDispatcher:
     """ Dispatches a MIDI event after feeding it through a transform function.
@@ -63,4 +70,29 @@ def send_to_device(data):
     """Sends a data payload to Arturia device. """
     debug.log('CMD', 'Sending payload: ' + str(data))
     # Reference regarding SysEx code : # https://forum.arturia.com/index.php?topic=90496.0
-    device.midiOutSysex(bytes([0xF0, 0x00, 0x20, 0x6B, 0x7F, 0x42]) + data + bytes([0xF7]))
+    device.midiOutSysex(bytes([0xF0, 0x00, 0x20, 0x6B, 0x7F, 0x42]) +
+                        bytes(data) + bytes([0xF7]))
+
+
+def dispatch_message_to_other_scripts(status, data1, data2, payload=None):
+    """ Sends midi commands to other scripts scripts. """
+    for i in range(device.dispatchReceiverCount()):
+        msg = status + (data1 << 8) + (data2 << 16)
+        if payload is None:
+            device.dispatch(i, msg)
+        else:
+            msg = INTER_SCRIPT_DATA1_BEGIN_PAYLOAD_CMD
+            msg += (INTER_SCRIPT_DATA1_BEGIN_PAYLOAD_CMD << 8)
+            device.dispatch(i, msg)
+
+            # Send payload
+            for j in range(0, len(payload), 2):
+                msg = PAYLOAD_STATUS_BYTE + (payload[j] << 8)
+                if j + 1 < len(payload):
+                   msg += (payload[j + 1] << 16)
+                device.dispatch(i, msg)
+
+            msg = INTER_SCRIPT_STATUS_BYTE
+            msg += (INTER_SCRIPT_DATA1_END_PAYLOAD_CMD << 8)
+            device.dispatch(i, msg)
+
