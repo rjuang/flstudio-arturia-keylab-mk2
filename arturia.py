@@ -2,7 +2,6 @@ import arrangement
 import channels
 import general
 import patterns
-import plugins
 import transport
 import ui
 
@@ -12,6 +11,12 @@ from arturia_leds import ArturiaLights
 from arturia_metronome import VisualMetronome
 from arturia_pages import ArturiaPagedDisplay
 from arturia_scheduler import Scheduler
+
+SCRIPT_VERSION = general.getVersion()
+
+# Enable support for FL Studio 20.7.2  (Version 7) by avoiding new APIs
+if SCRIPT_VERSION >= 8:
+  import plugins
 
 
 class ArturiaController:
@@ -74,7 +79,10 @@ class ArturiaController:
 
         # Update knob mode
         if self._encoders.GetCurrentMode() == ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS:
-            plugin_name = plugins.getPluginName(active_index) if plugins.isValid(active_index) else ''
+            if SCRIPT_VERSION >= 8:
+                plugin_name = plugins.getPluginName(active_index) if plugins.isValid(active_index) else ''
+            else:
+                plugin_name = ''
             self._encoders.SetKnobMode(plugin_name)
             self._encoders.SetSliderMode(plugin_name)
 

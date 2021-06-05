@@ -116,10 +116,6 @@ def OnMidiMsg(event):
         if event.data1 == 64:
             global _sustain_enabled
             _sustain_enabled = (event.data2 == 127)
-
-        # Don't suppress sustain pedal or pitch bend
-        if event.status == 176 and event.data1 not in (1, 64):
-            event.handled = True
     elif event.status in (144, 128):  # Midi note on
         _recorder.OnMidiNote(event)
     elif (event.status == arturia_midi.INTER_SCRIPT_STATUS_BYTE and

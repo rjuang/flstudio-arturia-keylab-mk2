@@ -222,9 +222,11 @@ class ArturiaMidiProcessor:
         self._midi_command_dispatcher.Dispatch(event)
 
     def OnKnobEvent(self, event):
+        event.handled = False
         self._knob_dispatcher.Dispatch(event)
 
     def OnSliderEvent(self, event):
+        event.handled = False
         slider_index = event.status - event.midiId
         slider_value = event.controlVal
 
