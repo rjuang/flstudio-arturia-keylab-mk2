@@ -1,13 +1,18 @@
 from arturia_midi import send_to_device
 
+import device
+
+ESSENTIAL_KEYBOARD = 'mkII' not in device.getName()
+
 
 class ArturiaLights:
     """Maintains setting all the button lights on the Arturia device."""
-
     # Value for turning on an LED.
     LED_ON = 127
     # Value for turning off an LED.
     LED_OFF = 0
+
+    MISSING = 0
 
     # IDs for all of the buttons with lights.
     ID_OCTAVE_MINUS = 16
@@ -29,21 +34,8 @@ class ArturiaLights:
     ID_BANK_PREVIOUS = 32
     ID_BANK_TOGGLE = 33
 
-    # Program bank buttons (these are the channel select buttons)
-    ID_BANK_SELECT1 = 34
-    ID_BANK_SELECT2 = 35
-    ID_BANK_SELECT3 = 36
-    ID_BANK_SELECT4 = 37
-    ID_BANK_SELECT5 = 38
-    ID_BANK_SELECT6 = 39
-    ID_BANK_SELECT7 = 40
-    ID_BANK_SELECT8 = 41
-    ID_BANK_SELECT9 = 42    # This is also the master/multi button
-
-    # Array representation for the bank lights
-    ARRAY_IDS_BANK_SELECT = [
-        ID_BANK_SELECT1, ID_BANK_SELECT2, ID_BANK_SELECT3, ID_BANK_SELECT4, ID_BANK_SELECT5, ID_BANK_SELECT6,
-        ID_BANK_SELECT7, ID_BANK_SELECT8, ID_BANK_SELECT9]
+    # Program bank buttons (these are the channel select buttons). Last button is the master/multi button
+    ARRAY_IDS_BANK_SELECT = [34, 35, 36, 37, 38, 39, 40, 41, 42]
 
     # Track controls
     ID_TRACK_SOLO = 96
@@ -67,36 +59,69 @@ class ArturiaLights:
     ID_TRANSPORTS_RECORD = 110
     ID_TRANSPORTS_LOOP = 111
 
-    # 4x4 pad
-    ID_PAD_R1_C1 = 112
-    ID_PAD_R1_C2 = 113
-    ID_PAD_R1_C3 = 114
-    ID_PAD_R1_C4 = 115
-
-    ID_PAD_R2_C1 = 116
-    ID_PAD_R2_C2 = 117
-    ID_PAD_R2_C3 = 118
-    ID_PAD_R2_C4 = 119
-
-    ID_PAD_R3_C1 = 120
-    ID_PAD_R3_C2 = 121
-    ID_PAD_R3_C3 = 122
-    ID_PAD_R3_C4 = 123
-
-    ID_PAD_R4_C1 = 124
-    ID_PAD_R4_C2 = 125
-    ID_PAD_R4_C3 = 126
-    ID_PAD_R4_C4 = 127
-
     # 4x4 lookup for the pad ids.
     MATRIX_IDS_PAD = [
-        [ID_PAD_R1_C1, ID_PAD_R1_C2, ID_PAD_R1_C3, ID_PAD_R1_C4],
-        [ID_PAD_R2_C1, ID_PAD_R2_C2, ID_PAD_R2_C3, ID_PAD_R2_C4],
-        [ID_PAD_R3_C1, ID_PAD_R3_C2, ID_PAD_R3_C3, ID_PAD_R3_C4],
-        [ID_PAD_R4_C1, ID_PAD_R4_C2, ID_PAD_R4_C3, ID_PAD_R4_C4],
+        [112, 113, 114, 115],
+        [116, 117, 118, 119],
+        [120, 121, 122, 123],
+        [124, 125, 126, 127],
     ]
 
     SET_COLOR_COMMAND = bytes([0x02, 0x00, 0x10])
+
+    if ESSENTIAL_KEYBOARD:
+        # Override LED code for essential keyboard
+        ID_OCTAVE_MINUS = 58
+        ID_OCTAVE_PLUS = 59
+        ID_CHORD = 56
+        ID_TRANSPOSE = 57
+        ID_MIDI_CHANNEL = 61
+
+        ID_PAD_MODE_CHORD_TRANSPOSE = MISSING
+        ID_PAD_MODE_CHORD_MEMORY = MISSING
+
+        ID_PAD_MODE_PAD = 60
+
+        ID_NAVIGATION_CATEGORY = 22
+        ID_NAVIGATION_PRESET = 23
+        ID_NAVIGATION_LEFT = 24
+        ID_NAVIGATION_RIGHT = 25
+
+        ID_NAVIGATION_ANALOG_LAB = MISSING
+        ID_NAVIGATION_DAW = MISSING
+        ID_NAVIGATION_USER = MISSING
+
+        ID_BANK_NEXT = 26
+        ID_BANK_PREVIOUS = 27
+        ID_BANK_TOGGLE = 28
+
+        ARRAY_IDS_BANK_SELECT = []
+
+        # Track controls
+        ID_TRACK_SOLO = MISSING
+        ID_TRACK_MUTE = MISSING
+        ID_TRACK_RECORD = MISSING
+        ID_TRACK_READ = MISSING
+        ID_TRACK_WRITE = MISSING
+
+        # Global controls
+        ID_GLOBAL_SAVE = 86
+        ID_GLOBAL_IN = 88
+        ID_GLOBAL_OUT = MISSING
+        ID_GLOBAL_METRO = 89
+        ID_GLOBAL_UNDO = 87
+
+        # Transports section
+        ID_TRANSPORTS_REWIND = 91
+        ID_TRANSPORTS_FORWARD = 92
+        ID_TRANSPORTS_STOP = 93
+        ID_TRANSPORTS_PLAY = 94
+        ID_TRANSPORTS_RECORD = 95
+        ID_TRANSPORTS_LOOP = 90
+        MATRIX_IDS_PAD = [
+            [32, 35, 38, 41],
+            [44, 47, 50, 53],
+        ]
 
     def __init__(self, send_fn=None):
         if send_fn is None:
@@ -109,8 +134,10 @@ class ArturiaLights:
         return ArturiaLights.LED_ON if is_on else ArturiaLights.LED_OFF
 
     @staticmethod
-    def Zero4x4Matrix():
-        return [[0]*4 for _ in range(4)]
+    def ZeroMatrix():
+        num_rows = len(ArturiaLights.MATRIX_IDS_PAD)
+        num_cols = len(ArturiaLights.MATRIX_IDS_PAD[0])
+        return [[0]*num_cols for _ in range(num_rows)]
 
     def SetPadLights(self, matrix_values):
         """ Set the pad lights given a matrix of color values to set the pad with.
@@ -118,8 +145,10 @@ class ArturiaLights:
         """
         # Note: Pad lights can be set to RGB colors, but this doesn't seem to be working.
         led_map = {}
-        for r in range(4):
-            for c in range(4):
+        num_rows = len(ArturiaLights.MATRIX_IDS_PAD)
+        num_cols = len(ArturiaLights.MATRIX_IDS_PAD[0])
+        for r in range(num_rows):
+            for c in range(num_cols):
                 led_map[ArturiaLights.MATRIX_IDS_PAD[r][c]] = matrix_values[r][c]
         self.SetLights(led_map)
 
@@ -128,12 +157,18 @@ class ArturiaLights:
 
         :param array_values: a 9-element array containing the LED color values.
         """
-        led_map = {k : v for k, v in zip(ArturiaLights.ARRAY_IDS_BANK_SELECT, array_values)}
+        if not ArturiaLights.ARRAY_IDS_BANK_SELECT:
+            return
+
+        led_map = {k: v for k, v in zip(ArturiaLights.ARRAY_IDS_BANK_SELECT, array_values)}
         self.SetLights(led_map)
 
     def SetLights(self, led_mapping):
         """ Given a map of LED ids to color value, construct and send a command with all the led mapping. """
         data = bytes([])
         for led_id, led_value in led_mapping.items():
+            if led_id == ArturiaLights.MISSING:
+                # Do not toggle/set lights that are missing
+                continue
             data += bytes([led_id, led_value])
         self._send_fn(ArturiaLights.SET_COLOR_COMMAND + data)

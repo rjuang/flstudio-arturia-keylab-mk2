@@ -78,7 +78,7 @@ def OnLongPressDrumPad(note):
 def BlinkLight(note):
     global _pad_recording_led, _pad_recording_task
     if _recorder.IsRecording():
-        led_id = note - MIDI_DRUM_PAD_DATA1_MIN + ArturiaLights.ID_PAD_R1_C1
+        led_id = note - MIDI_DRUM_PAD_DATA1_MIN + ArturiaLights.MATRIX_IDS_PAD[0][0]
         _pad_recording_led = not _pad_recording_led
         _lights.SetLights({led_id: ArturiaLights.AsOnOffByte(_pad_recording_led)})
         _pad_recording_task = _scheduler.ScheduleTask(lambda: BlinkLight(note), delay=1000)

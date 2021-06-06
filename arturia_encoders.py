@@ -305,7 +305,7 @@ class ArturiaInputControls:
 
     def _update_lights(self):
         # Set 4x4 Pad lights to indicate the current configuration
-        pad_values = ArturiaLights.Zero4x4Matrix()
+        pad_values = ArturiaLights.ZeroMatrix()
 
         knob_row, knob_col = self._get_pad_position(self._knobs_mode_index)
         slider_row, slider_col = self._get_pad_position(self._sliders_mode_index)
