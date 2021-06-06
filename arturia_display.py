@@ -37,7 +37,7 @@ class ArturiaDisplay:
         line_src = self._line1
         if self._expiration_time_ms > self.time_ms():
             line_src = self._ephemeral_line1
-        return bytearray(line_src[start_pos:end_pos], 'ascii')
+        return bytearray(line_src[start_pos:end_pos], 'utf-8')
 
     def _get_line2_bytes(self):
         # Get up to 16-bytes the exact chars to display for line 2.
@@ -46,7 +46,7 @@ class ArturiaDisplay:
         line_src = self._line2
         if self._expiration_time_ms > self.time_ms():
             line_src = self._ephemeral_line2
-        return bytearray(line_src[start_pos:end_pos], 'ascii')
+        return bytearray(line_src[start_pos:end_pos], 'utf-8')
 
     def _get_new_offset(self, start_pos, line_src):
         end_pos = start_pos + 16
