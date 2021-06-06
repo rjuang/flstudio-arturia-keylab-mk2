@@ -45,7 +45,7 @@ class ArturiaInputControls:
         if incremental:
             value = channels.incEventValue(event_id, value, 0.01)
         else:
-            value = ArturiaInputControls._to_rec_value(value, limit=16384)
+            value = ArturiaInputControls._to_rec_value(value, limit=12800)
 
         general.processRECEvent(
             event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
@@ -127,13 +127,34 @@ class ArturiaInputControls:
         }
 
         self._sliders_map[ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW] = {
-            '': [self._mixer_map_for(midi.REC_Mixer_Vol, [1, 2, 3, 4, 5, 6, 7, 8, 0])],
+            '': [
+                self._mixer_map_for(midi.REC_Mixer_Vol, [1, 2, 3, 4, 5, 6, 7, 8, 0]),
+                self._mixer_map_for(midi.REC_Mixer_Vol, [9, 10, 11, 12, 13, 14, 15, 16, 0]),
+                self._mixer_map_for(midi.REC_Mixer_Vol, [17, 18, 19, 20, 21, 22, 23, 24, 0]),
+                self._mixer_map_for(midi.REC_Mixer_Vol, [25, 26, 27, 28, 29, 30, 31, 32, 0]),
+                self._mixer_map_for(midi.REC_Mixer_Vol, [33, 34, 35, 36, 37, 38, 39, 40, 0]),
+                # If you need more tracks for mixer sliders, add below here...
+            ],
         }
 
         self._knobs_map[ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW] = {
             '': [
                 self._mixer_map_for(midi.REC_Mixer_Pan, [1, 2, 3, 4, 5, 6, 7, 8, 0], incremental=True),
                 self._mixer_map_for(midi.REC_Mixer_SS, [1, 2, 3, 4, 5, 6, 7, 8, 0], incremental=True),
+
+                self._mixer_map_for(midi.REC_Mixer_Pan, [9, 10, 11, 12, 13, 14, 15, 16, 0], incremental=True),
+                self._mixer_map_for(midi.REC_Mixer_SS, [9, 10, 11, 12, 13, 14, 15, 16, 0], incremental=True),
+
+                self._mixer_map_for(midi.REC_Mixer_Pan, [17, 18, 19, 20, 21, 22, 23, 24, 0], incremental=True),
+                self._mixer_map_for(midi.REC_Mixer_SS, [17, 18, 19, 20, 21, 22, 23, 24, 0], incremental=True),
+
+                self._mixer_map_for(midi.REC_Mixer_Pan, [25, 26, 27, 28, 29, 30, 31, 32, 0], incremental=True),
+                self._mixer_map_for(midi.REC_Mixer_SS, [25, 26, 27, 28, 29, 30, 31, 32, 0], incremental=True),
+
+                self._mixer_map_for(midi.REC_Mixer_Pan, [33, 34, 35, 36, 37, 38, 39, 40, 0], incremental=True),
+                self._mixer_map_for(midi.REC_Mixer_SS, [33, 34, 35, 36, 37, 38, 39, 40, 0], incremental=True),
+
+                # If you need more tracks for mixer knobs, add below here...
             ],
         }
 
