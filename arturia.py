@@ -3,6 +3,7 @@ import channels
 import general
 import midi
 import patterns
+import time
 import transport
 import ui
 
@@ -29,6 +30,7 @@ class ArturiaController:
         self._lights = ArturiaLights()
         self._metronome = VisualMetronome(self._lights)
         self._encoders = ArturiaInputControls(self._paged_display, self._lights)
+        self._last_send = 0
 
     def display(self):
         return self._display
@@ -66,6 +68,8 @@ class ArturiaController:
                 arrangement.selectionEnd() > arrangement.selectionStart()),
             ArturiaLights.ID_NAVIGATION_LEFT: ArturiaLights.AsOnOffByte(ui.getVisible(midi.widChannelRack)),
             ArturiaLights.ID_NAVIGATION_RIGHT: ArturiaLights.AsOnOffByte(ui.getVisible(midi.widMixer)),
+            ArturiaLights.ID_OCTAVE_PLUS: ArturiaLights.LED_OFF,
+            ArturiaLights.ID_OCTAVE_MINUS: ArturiaLights.LED_OFF,
         }
         self._lights.SetLights(led_map)
 
@@ -98,6 +102,16 @@ class ArturiaController:
             line2='%s' % pattern_name)
         self._encoders.Refresh()
 
+    def _TurnOffOctaveLights(self):
+        # Disable blinking lights on octave keyboard
+        if time.time() - self._last_send >= 0.5:
+            self._lights.SetLights({
+                ArturiaLights.ID_OCTAVE_PLUS: ArturiaLights.LED_OFF,
+                ArturiaLights.ID_OCTAVE_MINUS: ArturiaLights.LED_OFF,
+            })
+            self._last_send = time.time()
+
     def Idle(self):
         self._scheduler.Idle()
         self._paged_display.Refresh()
+        self._TurnOffOctaveLights()
