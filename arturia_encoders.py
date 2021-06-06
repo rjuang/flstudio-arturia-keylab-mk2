@@ -133,7 +133,7 @@ class ArturiaInputControls:
         self._knobs_map[ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW] = {
             '': [
                 self._mixer_map_for(midi.REC_Mixer_Pan, [1, 2, 3, 4, 5, 6, 7, 8, 0], incremental=True),
-                self._mixer_map_for(midi.REC_Mixer_SS, [9, 10, 11, 4, 5, 6, 7, 8, 0], incremental=True),
+                self._mixer_map_for(midi.REC_Mixer_SS, [1, 2, 3, 4, 5, 6, 7, 8, 0], incremental=True),
             ],
         }
 
