@@ -1,5 +1,7 @@
 import arrangement
 import channels
+
+import arturia_leds
 import debug
 import general
 import midi
@@ -122,6 +124,8 @@ class ArturiaMidiProcessor:
         self._debug_value = 0
         # Mapping of string -> entry corresponding to scheduled long press task
         self._long_press_tasks = {}
+        # Indicates if punch button is pressed (needed for essential keyboards)
+        self._punched = False
 
     def circular(self, low, high, x):
         if x > high:
@@ -311,12 +315,19 @@ class ArturiaMidiProcessor:
         transport.setLoopMode()
 
     def OnGlobalIn(self, event):
+        if arturia_leds.ESSENTIAL_KEYBOARD:
+            if self._punched:
+                # Dispatch to punchOut for essential keyboards since essential only has one punch button.
+                self.OnGlobalOut(event)
+                return
+        self._punched = True
         debug.log('OnGlobalIn', 'Dispatched', event=event)
         transport.globalTransport(midi.FPT_PunchIn, midi.FPT_PunchIn, event.pmeFlags)
         self._controller.lights().SetLights({ArturiaLights.ID_GLOBAL_IN: ArturiaLights.LED_ON})
 
     def OnGlobalOut(self, event):
         debug.log('OnGlobalOut', 'Dispatched', event=event)
+        self._punched = False
         transport.globalTransport(midi.FPT_PunchOut, midi.FPT_PunchOut, event.pmeFlags)
         if arrangement.selectionStart() < 0:
             self._controller.lights().SetLights({ArturiaLights.ID_GLOBAL_IN: ArturiaLights.LED_OFF})
