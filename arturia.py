@@ -1,6 +1,7 @@
 import arrangement
 import channels
 import general
+import midi
 import patterns
 import transport
 import ui
@@ -63,6 +64,8 @@ class ArturiaController:
             ArturiaLights.ID_TRANSPORTS_PLAY: ArturiaLights.AsOnOffByte(transport.getSongPos() > 0),
             ArturiaLights.ID_GLOBAL_OUT: ArturiaLights.AsOnOffByte(
                 arrangement.selectionEnd() > arrangement.selectionStart()),
+            ArturiaLights.ID_NAVIGATION_LEFT: ArturiaLights.AsOnOffByte(ui.getVisible(midi.widChannelRack)),
+            ArturiaLights.ID_NAVIGATION_RIGHT: ArturiaLights.AsOnOffByte(ui.getVisible(midi.widMixer)),
         }
         self._lights.SetLights(led_map)
 

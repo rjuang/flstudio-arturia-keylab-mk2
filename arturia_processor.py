@@ -63,8 +63,8 @@ class ArturiaMidiProcessor:
             .SetHandler(74, self.OnTrackRead, ignore_release)
             .SetHandler(75, self.OnTrackWrite, ignore_release)
 
-            .SetHandler(98, self.OnNavigationLeft, ignore_release)
-            .SetHandler(99, self.OnNavigationRight, ignore_release)
+            .SetHandler(98, self.OnNavigationLeft)
+            .SetHandler(99, self.OnNavigationRight)
             .SetHandler(84, self.OnNavigationKnobPressed, ignore_release)
 
             .SetHandler(49, self.OnBankNext)
@@ -293,6 +293,15 @@ class ArturiaMidiProcessor:
         if not ui.getFocused(window):
             ui.setFocused(window)
 
+    def _toggle_visibility(self, window):
+        if not ui.getVisible(window):
+            ui.showWindow(window)
+            ui.setFocused(window)
+            return True
+        else:
+            ui.hideWindow(window)
+            return False
+
     def OnTransportsPausePlay(self, event):
         debug.log('OnTransportsPausePlay', 'Dispatched', event=event)
         song_mode = transport.getLoopMode() == 1
@@ -424,12 +433,34 @@ class ArturiaMidiProcessor:
         patterns.jumpToPattern(next)
 
     def OnNavigationLeft(self, event):
-        debug.log('OnNavigationLeft', 'Dispatched', event=event)
-        self._navigation.PreviousMode()
+        self._detect_long_press(event, self.OnNavigationLeftShortPress, self.OnNavigationLeftLongPress)
 
     def OnNavigationRight(self, event):
-        debug.log('OnNavigationRight', 'Dispatched', event=event)
+        self._detect_long_press(event, self.OnNavigationRightShortPress, self.OnNavigationRightLongPress)
+
+    def OnNavigationLeftShortPress(self, event):
+        debug.log('OnNavigationLeftShortPress', 'Dispatched', event=event)
+        self._navigation.PreviousMode()
+
+    def OnNavigationRightShortPress(self, event):
+        debug.log('OnNavigationRightShortPress', 'Dispatched', event=event)
         self._navigation.NextMode()
+
+    def OnNavigationLeftLongPress(self, event):
+        debug.log('OnNavigationLeftLongPress', 'Dispatched', event=event)
+        # Toggle visibility of channel rack
+        is_visible = self._toggle_visibility(midi.widChannelRack)
+        visible_str = 'VISIBLE' if is_visible else 'HIDDEN'
+        self._controller.lights().SetLights({ArturiaLights.ID_NAVIGATION_LEFT: ArturiaLights.AsOnOffByte(is_visible)})
+        self._display_hint(line1='Channel Rack', line2=visible_str)
+
+    def OnNavigationRightLongPress(self, event):
+        debug.log('OnNavigationRightLongPress', 'Dispatched', event=event)
+        # Toggle visibility of mixer panel
+        is_visible = self._toggle_visibility(midi.widMixer)
+        visible_str = 'VISIBLE' if is_visible else 'HIDDEN'
+        self._controller.lights().SetLights({ArturiaLights.ID_NAVIGATION_RIGHT: ArturiaLights.AsOnOffByte(is_visible)})
+        self._display_hint(line1='Mixer Panel', line2=visible_str)
 
     def OnNavigationKnobPressed(self, event):
         debug.log('OnNavigationKnobPressed', 'Dispatched', event=event)
