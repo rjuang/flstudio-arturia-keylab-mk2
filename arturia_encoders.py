@@ -305,14 +305,6 @@ class ArturiaInputControls:
 
     def _update_lights(self):
         # Set 4x4 Pad lights to indicate the current configuration
-        pad_values = ArturiaLights.ZeroMatrix()
-
-        knob_row, knob_col = self._get_pad_position(self._knobs_mode_index)
-        slider_row, slider_col = self._get_pad_position(self._sliders_mode_index)
-        pad_values[knob_row][knob_col] = ArturiaLights.LED_ON
-        pad_values[slider_row + 2][slider_col] = ArturiaLights.LED_ON
-        self._lights.SetPadLights(pad_values)
-
         is_channel_mode = self._current_mode == ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS
         is_mixer_mode = self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW
 
