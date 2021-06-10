@@ -2,6 +2,7 @@ import arrangement
 import channels
 
 import arturia_leds
+import arturia_midi
 import debug
 import general
 import midi
@@ -45,9 +46,9 @@ class ArturiaMidiProcessor:
             MidiEventDispatcher(by_control_num)
             .SetHandler(91, self.OnTransportsBack)
             .SetHandler(92, self.OnTransportsForward)
-            .SetHandler(93, self.OnTransportsStop, ignore_release)
+            .SetHandler(93, self.OnTransportsStop)
             .SetHandler(94, self.OnTransportsPausePlay, ignore_release)
-            .SetHandler(95, self.OnTransportsRecord, ignore_release)
+            .SetHandler(95, self.OnTransportsRecord)
             .SetHandler(86, self.OnTransportsLoop, ignore_release)
 
             .SetHandler(80, self.OnGlobalSave, ignore_release)
@@ -283,9 +284,19 @@ class ArturiaMidiProcessor:
             self._controller.paged_display().SetActivePage('main')
 
     def OnTransportsStop(self, event):
-        debug.log('OnTransportsStop', 'Dispatched', event=event)
-        self._controller.metronome().Reset()
-        transport.stop()
+        if self._is_pressed(event):
+            debug.log('OnTransportsStop [down]', 'Dispatched', event=event)
+            self._controller.metronome().Reset()
+            transport.stop()
+            data1 = arturia_midi.INTER_SCRIPT_DATA1_BTN_DOWN_CMD
+        else:
+            debug.log('OnTransportsStop [up]', 'Dispatched', event=event)
+            data1 = arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD
+
+        arturia_midi.dispatch_message_to_other_scripts(
+            arturia_midi.INTER_SCRIPT_STATUS_BYTE,
+            data1,
+            event.controlNum)
 
     def _show_and_focus(self, window):
         if not ui.getVisible(window):
@@ -312,8 +323,19 @@ class ArturiaMidiProcessor:
         transport.globalTransport(midi.FPT_Play, midi.FPT_Play, event.pmeFlags)
 
     def OnTransportsRecord(self, event):
-        debug.log('OnTransportsRecord', 'Dispatched', event=event)
-        transport.record()
+        if self._is_pressed(event):
+            debug.log('OnTransportsRecord [down]', 'Dispatched', event=event)
+            transport.record()
+            arturia_midi.dispatch_message_to_other_scripts(
+                arturia_midi.INTER_SCRIPT_STATUS_BYTE,
+                arturia_midi.INTER_SCRIPT_DATA1_BTN_DOWN_CMD,
+                event.controlNum)
+        else:
+            debug.log('OnTransportsRecord [up]', 'Dispatched', event=event)
+            arturia_midi.dispatch_message_to_other_scripts(
+                arturia_midi.INTER_SCRIPT_STATUS_BYTE,
+                arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD,
+                event.controlNum)
 
     def OnTransportsLoop(self, event):
         debug.log('OnTransportsLoop', 'Dispatched', event=event)

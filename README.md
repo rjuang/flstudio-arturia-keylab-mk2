@@ -50,8 +50,6 @@ In the instructions, instead of selecting "Mackie Control Universal" select my s
 Note that there will be another script called `Arturia Keylab mkII (MIDI)`. This is an optional script for enabling
 Analog Lab. You can set `Arturia Keylab mkII` device to this script. 
 
-Update: make sure under the Output section of midi settings, the port for 'Keylab mkII 61' device is set to unassigned `--`.
-
 ## IMPORTANT ##
 When using your keyboard, make sure that you set it to use the DAW mode (i.e., the DAW button is selected as opposed to
 the User or Analog Lab buttons).

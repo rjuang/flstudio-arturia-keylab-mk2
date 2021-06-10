@@ -21,6 +21,8 @@ MIDI_DRUM_PAD_STATUS_ON = 169
 MIDI_DRUM_PAD_STATUS_OFF = 137
 MIDI_DRUM_PAD_DATA1_MIN = 36
 MIDI_DRUM_PAD_DATA1_MAX = 51
+REC_BUTTON_ID = 95
+STOP_BUTTON_ID = 93
 
 
 def dispatch_to_other_scripts(payload):
@@ -36,8 +38,11 @@ _lights = ArturiaLights(send_fn=dispatch_to_other_scripts)
 _pad_recording_led = False
 _pad_recording_task = None
 _sustain_enabled = False
+_buttons_held = set()
 _fallback_pad_values = {}
 _longpress_status = {}
+# Drop notes that match the specified critiria
+_drop_note = None
 
 
 def OnInit():
@@ -56,7 +61,7 @@ def OnShortPressDrumPad(event):
         _recorder.StopRecording()
         _scheduler.CancelTask(_pad_recording_task)
         _pad_recording_task = None
-    else:
+    elif event.status == 153:
         global _sustain_enabled
         log('midi', 'Play. short press detected for %s. Sustain=%s' % (str(note), _sustain_enabled))
         if not _recorder.Play(note, loop=_sustain_enabled):
@@ -64,12 +69,13 @@ def OnShortPressDrumPad(event):
 
 
 def OnLongPressDrumPad(note):
-    global _pad_recording_led
+    global _pad_recording_led, _drop_note
     if _recorder.IsRecording():
         log('midi', 'Stop Recording. Long press detected for %s' % str(note))
         _recorder.StopRecording()
     else:
         log('midi', 'Start Recording. Long press detected for %s' % str(note))
+        _drop_note = note
         _recorder.StartRecording(note)
         _pad_recording_led = False
         BlinkLight(note)
@@ -85,25 +91,34 @@ def BlinkLight(note):
 
 
 def OnMidiMsg(event):
+    global _drop_note, _buttons_held, _recorder
     note = event.data1
     log_msg = True
-    if event.status == MIDI_DRUM_PAD_STATUS_ON or event.status == 153:
+    if (event.status == MIDI_DRUM_PAD_STATUS_ON and _drop_note != event.data1) or event.status == 153:
         if MIDI_DRUM_PAD_DATA1_MIN <= note <= MIDI_DRUM_PAD_DATA1_MAX:
+            # Make sure to trigger short press event on the event down so as to avoid delay.
             event.handled = True
             if event.status == 153:
                 _fallback_pad_values[event.data1] = event.data2
-            if note not in _longpress_status:
+            if note not in _longpress_status and REC_BUTTON_ID not in _buttons_held:
                 log('midi', 'Schedule long press detection for %s' % str(note))
                 _longpress_status[note] = _scheduler.ScheduleTask(lambda: OnLongPressDrumPad(note), delay=1000)
-
+            if REC_BUTTON_ID in _buttons_held:
+                OnLongPressDrumPad(note)
+            else:
+                OnShortPressDrumPad(event)
     elif event.status == MIDI_DRUM_PAD_STATUS_OFF:
+        event.handled = True
         if MIDI_DRUM_PAD_DATA1_MIN <= event.data1 <= MIDI_DRUM_PAD_DATA1_MAX:
-            event.handled = True
-            if event.data1 in _longpress_status:
-                if _scheduler.CancelTask(_longpress_status[event.data1]):
-                    log('midi', 'Long press canceled for %s' % str(event.data1))
-                    OnShortPressDrumPad(event)
-                del _longpress_status[event.data1]
+            if event.data1 == _drop_note:
+                _drop_note = None
+            else:
+                OnShortPressDrumPad(event)
+                if event.data1 in _longpress_status:
+                    if _scheduler.CancelTask(_longpress_status[event.data1]):
+                        log('midi', 'Long press canceled for %s' % str(event.data1))
+                    del _longpress_status[event.data1]
+
     elif event.status == 176 or event.status == 224:
         if event.data1 == 118 and event.data2 == 127:
             # User switched to Analog Lab mode.
@@ -118,11 +133,21 @@ def OnMidiMsg(event):
             _sustain_enabled = (event.data2 == 127)
     elif event.status in (144, 128):  # Midi note on
         _recorder.OnMidiNote(event)
-    elif (event.status == arturia_midi.INTER_SCRIPT_STATUS_BYTE and
-          event.data1 == arturia_midi.INTER_SCRIPT_DATA1_IDLE_CMD):
-        _scheduler.Idle()
+    elif event.status == arturia_midi.INTER_SCRIPT_STATUS_BYTE:
+        if event.data1 == arturia_midi.INTER_SCRIPT_DATA1_IDLE_CMD:
+            _scheduler.Idle()
+            log_msg = False
+        elif event.data1 == arturia_midi.INTER_SCRIPT_DATA1_BTN_DOWN_CMD:
+            _buttons_held.add(event.data2)
+            if event.data2 == STOP_BUTTON_ID:
+                _recorder.StopRecording()
+
+        elif event.data1 == arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD and event.data2 in _buttons_held:
+            _buttons_held.remove(event.data2)
+
+        # All inter-cmd messages should be marked handled to ensure they do not contribute to influencing FL Studio
+        # state
         event.handled = True
-        log_msg = False
 
     if log_msg:
         log('midi', 'status: %d, data1: %d, data2: %d handled: %s' % (event.status, event.data1, event.data2, str(event.handled)))

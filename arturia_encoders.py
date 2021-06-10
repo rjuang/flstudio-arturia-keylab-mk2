@@ -9,6 +9,51 @@ from arturia_display import ArturiaDisplay
 from arturia_leds import ArturiaLights
 from debug import log
 
+SCRIPT_VERSION = general.getVersion()
+
+if SCRIPT_VERSION >= 8:
+    import plugins
+
+
+def _auto_generate_knobs_mapping(plugin_idx):
+    if SCRIPT_VERSION < 8:
+        return False
+    params = _get_param_names(plugin_idx)
+    map_idx = [
+        _find_parameter_index(params, 'cutoff', 'filter', '1'),
+        _find_parameter_index(params, 'resonance', 'filter', '1'),
+        _find_parameter_index(params, 'lfo', 'delay', '1'),
+        _find_parameter_index(params, 'lfo', 'rate', '1'),
+        _find_parameter_index(params, 'macro', '1'),
+        _find_parameter_index(params, 'macro', '2'),
+        _find_parameter_index(params, 'macro', '3'),
+        _find_parameter_index(params, 'macro', '4'),
+        _find_parameter_index(params, 'chorus'),
+    ]
+    for idx in map_idx:
+        if idx >= 0:
+            return map_idx
+    return []
+
+
+def _get_param_names(plugin_idx):
+    return [plugins.getParamName(i, plugin_idx).lower() for i in range(plugins.getParamCount(plugin_idx))]
+
+
+def _find_parameter_index(parameter_names, *keywords):
+    candidates = set(enumerate(parameter_names))
+    for keyword in keywords:
+        keyword = keyword.lower()
+        if len(candidates) <= 1:
+            break
+        next_candidates = []
+        for val in candidates:
+            if keyword in val[1]:
+                next_candidates.append(val)
+        candidates = next_candidates
+    return candidates[0][0] if candidates else -1
+
+
 class ArturiaInputControls:
     """ Manges what the sliders/knobs control on an Arturia Keyboard.
 
@@ -28,9 +73,13 @@ class ArturiaInputControls:
     def _to_rec_value(value, limit=midi.FromMIDI_Max):
         return int((value / 127.0) * limit)
 
-    @staticmethod
-    def _set_plugin_param(param_id, value, incremental=False):
-        event_id = channels.getRecEventId(channels.selectedChannel()) + midi.REC_Chan_Plugin_First + param_id
+    def _set_plugin_param(self, param_id, value, incremental=False):
+        if param_id < 0:
+            # Ignore negative values
+            self._display_unset()
+            return
+        plugin_idx = channels.selectedChannel()
+        event_id = channels.getRecEventId(plugin_idx) + midi.REC_Chan_Plugin_First + param_id
         if incremental:
             value = channels.incEventValue(event_id, value, 0.01)
         else:
@@ -38,9 +87,12 @@ class ArturiaInputControls:
         general.processRECEvent(
             event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
                              | midi.REC_UpdateControl | midi.REC_SetChanged)
+        if not self._check_and_show_hint() and SCRIPT_VERSION >= 8:
+            param_name = plugins.getParamName(param_id, plugin_idx)
+            param_value = plugins.getParamValue(param_id, plugin_idx) / 1016.0 * 100.0
+            self._display_hint(param_name, '%0.2f' % param_value)
 
-    @staticmethod
-    def _set_mixer_param(param_id, value, incremental=False, track_index=0, plugin_index=0):
+    def _set_mixer_param(self, param_id, value, incremental=False, track_index=0, plugin_index=0):
         event_id = mixer.getTrackPluginId(track_index, plugin_index) + param_id
         if incremental:
             value = channels.incEventValue(event_id, value, 0.01)
@@ -50,23 +102,21 @@ class ArturiaInputControls:
         general.processRECEvent(
             event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
                              | midi.REC_UpdateControl | midi.REC_SetChanged)
+        if incremental:
+            self._check_and_show_hint()
 
-    @staticmethod
-    def _set_mixer_param_fn(param_id, incremental=False, track_index=0, plugin_index=0):
-        return lambda v: ArturiaInputControls._set_mixer_param(
+    def _set_mixer_param_fn(self, param_id, incremental=False, track_index=0, plugin_index=0):
+        return lambda v: self._set_mixer_param(
             param_id, v, incremental=incremental, track_index=track_index, plugin_index=plugin_index)
 
-    @staticmethod
-    def _set_plugin_param_fn(param_id, incremental=False):
-        return lambda v: ArturiaInputControls._set_plugin_param(param_id, v, incremental=incremental)
+    def _set_plugin_param_fn(self, param_id, incremental=False):
+        return lambda v: self._set_plugin_param(param_id, v, incremental=incremental)
 
-    @staticmethod
-    def _plugin_map_for(offsets, incremental=False):
-        return [ArturiaInputControls._set_plugin_param_fn(x, incremental=incremental) for x in offsets]
+    def _plugin_map_for(self, offsets, incremental=False):
+        return [self._set_plugin_param_fn(x, incremental=incremental) for x in offsets]
 
-    @staticmethod
-    def _mixer_map_for(param_id, track_indices, incremental=False):
-        return [ArturiaInputControls._set_mixer_param_fn(param_id, track_index=t, incremental=incremental)
+    def _mixer_map_for(self, param_id, track_indices, incremental=False):
+        return [self._set_mixer_param_fn(param_id, track_index=t, incremental=incremental)
                 for t in track_indices]
 
     def __init__(self, paged_display, lights):
@@ -185,9 +235,13 @@ class ArturiaInputControls:
 
     def SetKnobMode(self, knob_mode):
         if knob_mode not in self._knobs_map[self._current_mode]:
-            self._last_unknown_knob_mode = knob_mode
-            log('WARNING', 'No encoder mapping for plugin <%s>' % knob_mode)
-            knob_mode = ''
+            knob_mapping = _auto_generate_knobs_mapping(channels.selectedChannel())
+            if knob_mapping:
+                self._knobs_map[self._current_mode][knob_mode] = [self._plugin_map_for(knob_mapping, incremental=True)]
+            else:
+                self._last_unknown_knob_mode = knob_mode
+                log('WARNING', 'No encoder mapping for plugin <%s>' % knob_mode)
+                knob_mode = ''
         else:
             self._last_unknown_knob_mode = ''
         self._knobs_mode = knob_mode
@@ -216,7 +270,13 @@ class ArturiaInputControls:
     def _get_knob_pages(self):
         knob_key = self._knobs_mode
         if knob_key not in self._knobs_map[self._current_mode]:
-            knob_key = ''
+            knob_mapping = _auto_generate_knobs_mapping(channels.selectedChannel())
+            if knob_mapping:
+                self._knobs_map[self._current_mode][knob_key] = [self._plugin_map_for(knob_mapping, incremental=True)]
+                return [_auto_generate_knobs_mapping(channels.selectedChannel())]
+            else:
+                self._last_unknown_knob_mode = knob_key
+                log('WARNING', 'No encoder mapping for plugin <%s>' % knob_key)
         return self._knobs_map[self._current_mode][knob_key]
 
     def _get_slider_pages(self):
@@ -247,7 +307,7 @@ class ArturiaInputControls:
         pages = self._get_knob_pages()
         if len(pages) == 0:
             # Knob mode is invalid
-            self._display_unset_knob()
+            self._display_unset()
             return
 
         # Assume index is always valid
@@ -256,18 +316,17 @@ class ArturiaInputControls:
         # Check if knob is mapped
         if knob_index >= len(knobs):
             # Knob is unmapped in the array
-            self._display_unset_knob()
+            self._display_unset()
             return
 
         knobs[knob_index](delta)
-        self._check_and_show_hint()
         return self
 
     def ProcessSliderInput(self, slider_index, value):
         pages = self._get_slider_pages()
         if len(pages) == 0:
             # Slider mode is invalid
-            self._display_unset_slider()
+            self._display_unset()
             return
 
         # Assume index is always valid
@@ -276,7 +335,7 @@ class ArturiaInputControls:
         # Check if knob is mapped
         if slider_index >= len(sliders):
             # Slider is unmapped in the array
-            self._display_unset_slider()
+            self._display_unset()
             return
         sliders[slider_index](value)
         return self
@@ -305,21 +364,19 @@ class ArturiaInputControls:
             self._paged_display.SetActivePage('hint', expires=5000)
             self._last_hint_time_ms = current_time_ms
 
-    def _display_unset_slider(self):
-        self._display_hint(' (SLIDER UNSET) ', ' ')
-
-    def _display_unset_knob(self):
-        self._display_hint(' (KNOB UNSET) ', ' ')
+    def _display_unset(self):
+        self._display_hint(' (UNSET) ', ' ')
 
     def _check_and_show_hint(self):
         hint = ui.getHintMsg()
         if not hint:
-            return
+            return False
 
         lines = hint.split(':', 1)
         if len(lines) == 1:
             lines.append(' ')
         self._display_hint(lines[0], lines[1][:16])
+        return True
 
     def _get_pad_position(self, index):
         return int(index / 4) % 2, index % 4

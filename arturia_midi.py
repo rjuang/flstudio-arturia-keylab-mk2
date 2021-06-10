@@ -4,6 +4,9 @@ import device
 # Status command to use when sending commands between scripts
 INTER_SCRIPT_STATUS_BYTE = 0x00
 INTER_SCRIPT_DATA1_IDLE_CMD = 0x00
+INTER_SCRIPT_DATA1_BTN_DOWN_CMD = 0x01     # Data2 contains the id of the button
+INTER_SCRIPT_DATA1_BTN_UP_CMD = 0x02       # Data2 contains the id of the button
+
 INTER_SCRIPT_DATA1_BEGIN_PAYLOAD_CMD = 0xFE
 INTER_SCRIPT_DATA1_END_PAYLOAD_CMD = 0xFF
 PAYLOAD_STATUS_BYTE = 0x01
