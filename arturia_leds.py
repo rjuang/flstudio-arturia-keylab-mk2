@@ -67,7 +67,11 @@ class ArturiaLights:
         [124, 125, 126, 127],
     ]
 
-    SET_COLOR_COMMAND = bytes([0x02, 0x00, 0x10])
+    # Command bytes for setting monochrome light (followed by id, 7-bit LED value)
+    SET_MONOCHROME_LIGHT_COMMAND = bytes([0x02, 0x00, 0x10])
+
+    # Command bytes for setting RGB light (followed by id, 7-bit R, 7-bit G, 7-bit B)
+    SET_RGB_LIGHT_COMMAND = bytes([0x02, 0x00, 0x16])
 
     if ESSENTIAL_KEYBOARD:
         # Override LED code for essential keyboard
@@ -171,4 +175,4 @@ class ArturiaLights:
                 # Do not toggle/set lights that are missing
                 continue
             data += bytes([led_id, led_value])
-        self._send_fn(ArturiaLights.SET_COLOR_COMMAND + data)
+        self._send_fn(ArturiaLights.SET_MONOCHROME_LIGHT_COMMAND + data)

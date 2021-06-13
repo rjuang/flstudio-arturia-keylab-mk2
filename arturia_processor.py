@@ -19,6 +19,8 @@ from arturia_midi import MidiEventDispatcher
 from arturia_navigation import NavigationMode
 from arturia_leds import ArturiaLights
 
+SCRIPT_VERSION = general.getVersion()
+
 # Event code indicating stop event
 SS_STOP = 0
 # Event code indicating start start event
@@ -110,7 +112,12 @@ class ArturiaMidiProcessor:
             NavigationMode(self._controller.paged_display())
             .AddMode('Volume', self.OnUpdateVolume, get_volume_line)
             .AddMode('Panning', self.OnUpdatePanning, get_panning_line)
-            .AddMode('Pitch', self.OnUpdatePitch, get_pitch_line)
+        )
+
+        if SCRIPT_VERSION >= 8:
+            self._navigation.AddMode('Pitch', self.OnUpdatePitch, get_pitch_line)
+
+        (self._navigation
             .AddMode('Time Marker', self.OnUpdateTimeMarker, get_time_position)
             # TODO: Combine RED/GREEN/BLUE to a single preset
             .AddMode('Red Color', self.OnUpdateColorRed, get_color_red_line)
@@ -149,6 +156,9 @@ class ArturiaMidiProcessor:
         channels.setChannelPan(channel, pan)
 
     def OnUpdatePitch(self, delta):
+        if SCRIPT_VERSION < 8:
+            # This isn't supported in older versions
+            return
         channel = channels.selectedChannel()
         pan = self.clip(-1., 1., channels.getChannelPitch(channel) + (delta / 100.0))
         channels.setChannelPitch(channel, pan)
@@ -165,7 +175,7 @@ class ArturiaMidiProcessor:
 
     def OnUpdateChannel(self, delta):
         index = self.clip(0, channels.channelCount() - 1, channels.selectedChannel() + delta)
-        channels.selectOneChannel(index)
+        self._select_one_channel(index)
 
     def _request_plugin_window_focus(self):
         current_time_ms = ArturiaDisplay.time_ms()
@@ -425,7 +435,7 @@ class ArturiaMidiProcessor:
         ui.copy()
         self._new_empty_pattern()
         ui.paste()
-        channels.selectOneChannel(active_channel)
+        self._select_one_channel(active_channel)
 
     def OnTrackRecordShortPress(self, event):
         debug.log('OnTrackRecord Short', 'Dispatched', event=event)
@@ -523,7 +533,7 @@ class ArturiaMidiProcessor:
     def OnBankSelect(self, event):
         bank_index = event.controlNum - 24
         if bank_index < channels.channelCount():
-            channels.selectOneChannel(bank_index)
+            self._select_one_channel(bank_index)
         debug.log('OnBankSelect', 'Selected bank index=%d' % bank_index, event=event)
 
     def OnStartOrEndSliderEvent(self, event):
@@ -537,3 +547,10 @@ class ArturiaMidiProcessor:
             line2 = ' '
         self._controller.paged_display().SetPageLines('hint', line1=line1, line2=line2)
         self._controller.paged_display().SetActivePage('hint', expires=1500)
+
+    def _select_one_channel(self, index):
+        if SCRIPT_VERSION >= 8:
+            channels.selectOneChannel(index)
+        else:
+            channels.deselectAll()
+            channels.selectChannel(index, 1)
