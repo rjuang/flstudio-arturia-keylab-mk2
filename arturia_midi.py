@@ -71,7 +71,7 @@ class MidiEventDispatcher:
 
 def send_to_device(data):
     """Sends a data payload to Arturia device. """
-    debug.log('CMD', 'Sending payload: ' + str(data))
+    # debug.log('CMD', 'Sending payload: ' + str(data))
     # Reference regarding SysEx code : # https://forum.arturia.com/index.php?topic=90496.0
     device.midiOutSysex(bytes([0xF0, 0x00, 0x20, 0x6B, 0x7F, 0x42]) +
                         bytes(data) + bytes([0xF7]))

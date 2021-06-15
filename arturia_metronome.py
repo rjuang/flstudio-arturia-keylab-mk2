@@ -1,5 +1,7 @@
 from arturia_leds import ArturiaLights
 
+import playlist
+
 
 class VisualMetronome:
     """ Manages animating button lights when song/pattern is playing so that user has a visual metronome. """
@@ -7,6 +9,7 @@ class VisualMetronome:
         self._beat_count = 0
         self._bar_count = -1  # First beat is always a bar, so this needs to get incremented to 0
         self._lights = lights
+        self._last_bst_position = (1, 0, 1)
 
     def Reset(self):
         """ Resets the metronome so that it begins from a rewinded playback state. """
@@ -22,6 +25,14 @@ class VisualMetronome:
     def ProcessBeat(self, value):
         """ Notify the metronome that a beat occured (e.g. OnUpdateBeatIndicator). """
         lights = ArturiaLights.ZeroMatrix()
+        current_bst_position = (playlist.getVisTimeBar(),
+                                playlist.getVisTimeStep(),
+                                playlist.getVisTimeTick())
+        if current_bst_position < self._last_bst_position:
+            self.Reset()
+
+        self._last_bst_position = current_bst_position
+
         if value == 2:
             # Indicates regular beat
             self._beat_count += 1
