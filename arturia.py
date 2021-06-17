@@ -53,7 +53,8 @@ class ArturiaController:
     def Sync(self):
         """ Syncs up all visual indicators on keyboard with changes from FL Studio. """
         # Update buttons
-        active_index = channels.selectedChannel()
+        # Bound active_index between [0, numChannels - 1]
+        active_index = max(0, min(channels.channelCount() - 1, channels.selectedChannel()))
         led_map = {
             ArturiaLights.ID_TRANSPORTS_RECORD: ArturiaLights.AsOnOffByte(transport.isRecording()),
             ArturiaLights.ID_TRANSPORTS_LOOP: ArturiaLights.AsOnOffByte(ui.isLoopRecEnabled()),
