@@ -245,6 +245,11 @@ class ArturiaMidiProcessor:
         slider_index = event.status - event.midiId
         slider_value = event.controlVal
 
+        if SCRIPT_VERSION < 8:
+            # Arturia keyboards on 20.7.2 seem to experience issues with sliders bouncing values between 126 and 127.
+            if slider_value >= 126:
+                slider_value = 127
+
         debug.log('OnSliderEvent', 'Slider %d = %d' % (slider_index, slider_value), event=event)
         self._controller.encoders().ProcessSliderInput(slider_index, slider_value)
 
