@@ -110,6 +110,7 @@ class ArturiaMidiProcessor:
 
         self._navigation = (
             NavigationMode(self._controller.paged_display())
+            .AddMode('Channel', self.OnUpdateChannel, get_channel_line)
             .AddMode('Volume', self.OnUpdateVolume, get_volume_line)
             .AddMode('Panning', self.OnUpdatePanning, get_panning_line)
         )
@@ -123,11 +124,10 @@ class ArturiaMidiProcessor:
             .AddMode('Red Color', self.OnUpdateColorRed, get_color_red_line)
             .AddMode('Green Color', self.OnUpdateColorGreen, get_color_green_line)
             .AddMode('Blue Color',  self.OnUpdateColorBlue, get_color_blue_line)
-            .AddMode('Target Mix Track', self.OnUpdateTargetMixerTrack, get_target_mixer_track)
-            .AddMode('Channel', self.OnUpdateChannel, get_channel_line)
-            .AddMode('Pattern', self.OnUpdatePattern, get_pattern_line)
             .AddMode('Plugin Preset', self.OnUpdatePlugin, get_plugin_line)
-        )
+            .AddMode('Pattern', self.OnUpdatePattern, get_pattern_line)
+            .AddMode('Target Mix Track', self.OnUpdateTargetMixerTrack, get_target_mixer_track)
+         )
         self._update_focus_time_ms = 0
         self._debug_value = 0
         # Mapping of string -> entry corresponding to scheduled long press task
