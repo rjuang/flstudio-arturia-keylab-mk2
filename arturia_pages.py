@@ -62,7 +62,7 @@ class ArturiaPagedDisplay:
                 line1 = self._line1[active_page]()
             if active_page in self._line2:
                 line2 = self._line2[active_page]()
-            self._display.SetLines(line1=line1, line2=line2)
+            self._display.SetLines(line1=line1[:16], line2=line2[:16])
 
     def Refresh(self):
         self._update_display(False)

@@ -21,6 +21,9 @@ from arturia_leds import ArturiaLights
 
 SCRIPT_VERSION = general.getVersion()
 
+if SCRIPT_VERSION >= 8:
+    import plugins
+
 # Event code indicating stop event
 SS_STOP = 0
 # Event code indicating start start event
@@ -188,10 +191,17 @@ class ArturiaMidiProcessor:
     def OnUpdatePlugin(self, delta):
         # Indicator to notify user that preset is in process of being set.
         self._request_plugin_window_focus()
-        if delta > 0:
-            ui.next()
-        elif delta < 0:
-            ui.previous()
+        if SCRIPT_VERSION >= 10:
+            idx = channels.selectedChannel()
+            if delta > 0:
+                plugins.nextPreset(idx)
+            elif delta < 0:
+                plugins.prevPreset(idx)
+        else:
+            if delta > 0:
+                ui.next()
+            elif delta < 0:
+                ui.previous()
 
     def OnUpdateColorRed(self, delta):
         r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
