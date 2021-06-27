@@ -547,9 +547,8 @@ class ArturiaMidiProcessor:
 
     def OnBankSelect(self, event):
         bank_index = event.controlNum - 24
-        if bank_index < channels.channelCount():
-            self._select_one_channel(bank_index)
         debug.log('OnBankSelect', 'Selected bank index=%d' % bank_index, event=event)
+        self._controller.encoders().ProcessBankSelection(bank_index)
 
     def OnStartOrEndSliderEvent(self, event):
         debug.log('OnStartOrEndSliderEvent', 'Dispatched', event=event)

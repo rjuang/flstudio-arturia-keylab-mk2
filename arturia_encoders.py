@@ -109,12 +109,27 @@ class ArturiaInputControls:
 
     def _update_knob_value(self, status, control_num, delta):
         value = 64
-        key = (status, control_num)
+        key = (channels.selectedChannel(), status, control_num)
         if key in self._plugin_knob_map:
             value = self._plugin_knob_map[key]
         value = min(127, max(0, value + delta))
         self._plugin_knob_map[key] = value
         return value
+
+    def _get_current_toggle_values(self):
+        key = (channels.selectedChannel(), self._current_index_plugin)
+        if key in self._plugin_toggle_map:
+            return self._plugin_toggle_map[key]
+        return [False] * 9
+
+    def _update_toggle_value(self, plugin_index, button_index):
+        bank_values = [False] * 9
+        key = (channels.selectedChannel(), plugin_index)
+        if key in self._plugin_toggle_map:
+            bank_values = self._plugin_toggle_map[key]
+        bank_values[button_index] = not bank_values[button_index]
+        self._plugin_toggle_map[key] = bank_values
+        return 127 if bank_values[button_index] else 0
 
     def _set_mixer_param_fn(self, param_id, incremental=False, track_index=0, plugin_index=0):
         return lambda v: self._set_mixer_param(
@@ -136,53 +151,8 @@ class ArturiaInputControls:
         self._mixer_knobs_panning = True
         self._current_mode = ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW
         self._plugin_knob_map = {}
+        self._plugin_toggle_map = {}
 
-        # Maps a string containing the input control mode to another dictionary containing a mapping of
-        # the plugin names to an array of lambda functions to execute for the corresponding offset.
-        self._knobs_map = {}
-        self._sliders_map = {}
-
-        self._sliders_map[ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW] = {
-            '': [
-                self._mixer_map_for(midi.REC_Mixer_Vol, [1, 2, 3, 4, 5, 6, 7, 8, 0]),
-                self._mixer_map_for(midi.REC_Mixer_Vol, [9, 10, 11, 12, 13, 14, 15, 16, 0]),
-                self._mixer_map_for(midi.REC_Mixer_Vol, [17, 18, 19, 20, 21, 22, 23, 24, 0]),
-                self._mixer_map_for(midi.REC_Mixer_Vol, [25, 26, 27, 28, 29, 30, 31, 32, 0]),
-                self._mixer_map_for(midi.REC_Mixer_Vol, [33, 34, 35, 36, 37, 38, 39, 40, 0]),
-                # If you need more tracks for mixer sliders, add below here...
-            ],
-        }
-
-        self._knobs_map[ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW] = {
-            '': [
-                self._mixer_map_for(midi.REC_Mixer_Pan, [1, 2, 3, 4, 5, 6, 7, 8, 0], incremental=True),
-                self._mixer_map_for(midi.REC_Mixer_SS, [1, 2, 3, 4, 5, 6, 7, 8, 0], incremental=True),
-
-                self._mixer_map_for(midi.REC_Mixer_Pan, [9, 10, 11, 12, 13, 14, 15, 16, 0], incremental=True),
-                self._mixer_map_for(midi.REC_Mixer_SS, [9, 10, 11, 12, 13, 14, 15, 16, 0], incremental=True),
-
-                self._mixer_map_for(midi.REC_Mixer_Pan, [17, 18, 19, 20, 21, 22, 23, 24, 0], incremental=True),
-                self._mixer_map_for(midi.REC_Mixer_SS, [17, 18, 19, 20, 21, 22, 23, 24, 0], incremental=True),
-
-                self._mixer_map_for(midi.REC_Mixer_Pan, [25, 26, 27, 28, 29, 30, 31, 32, 0], incremental=True),
-                self._mixer_map_for(midi.REC_Mixer_SS, [25, 26, 27, 28, 29, 30, 31, 32, 0], incremental=True),
-
-                self._mixer_map_for(midi.REC_Mixer_Pan, [33, 34, 35, 36, 37, 38, 39, 40, 0], incremental=True),
-                self._mixer_map_for(midi.REC_Mixer_SS, [33, 34, 35, 36, 37, 38, 39, 40, 0], incremental=True),
-
-                # If you need more tracks for mixer knobs, add below here...
-            ],
-        }
-
-        self._pending_slider_requests = {}
-        self._knobs_mode = ''
-        self._knobs_mode_index = 0
-        self._sliders_mode = ''
-        self._sliders_mode_index = 0
-        self._last_unknown_knob_mode = ''
-        self._last_unknown_slider_mode = ''
-        self._last_hint_title = ''
-        self._last_hint_value = ''
         self._last_hint_time_ms = 0
 
         self._current_index_mixer = 0
@@ -268,12 +238,27 @@ class ArturiaInputControls:
         param_id = midi.REC_Mixer_Pan if self._mixer_knobs_panning else midi.REC_Mixer_SS
         self._set_mixer_param(param_id, delta, track_index=track_index, incremental=True)
 
+    def _process_plugin_button_event(self, index):
+        status = 176 + self._current_index_plugin
+        data1 = 22 + index
+        data2 = self._update_toggle_value(self._current_index_plugin, index)
+        message = status + (data1 << 8) + (data2 << 16) + (arturia_midi.PLUGIN_PORT_NUM << 24)
+        device.forwardMIDICC(message, 2)
+        self._display_hint('Plugin button', '%02X %02X %02X' % (status, data1, data2))
+        self._update_lights()
+
     def ProcessSliderInput(self, slider_index, value):
         if self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW:
             self._process_sliders_track_volume(slider_index, value)
         else:
             self._process_plugin_slider_event(slider_index, value)
         return self
+
+    def ProcessBankSelection(self, button_index):
+        if self._current_mode != ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS:
+            self._select_one_channel(button_index)
+        else:
+            self._process_plugin_button_event(button_index)
 
     def StartOrEndSliderInput(self):
         pass
@@ -286,11 +271,6 @@ class ArturiaInputControls:
     def _display_hint(self, hint_title, hint_value):
         hint_title = ArturiaDisplay.abbreviate(hint_title)
 
-        if self._last_hint_title != hint_title:
-            self._paged_display.display().ResetScroll()
-
-        self._last_hint_title = hint_title
-        self._last_hint_value = hint_value
         self._paged_display.SetPageLines('hint', line1=hint_title, line2=hint_value)
         current_time_ms = ArturiaDisplay.time_ms()
 
@@ -316,8 +296,29 @@ class ArturiaInputControls:
         is_knobs_panning = (self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW and
                             self._mixer_knobs_panning)
         is_mixer_mode = self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW
+        is_plugin_mode = self._current_mode == ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS
 
         self._lights.SetLights({
             ArturiaLights.ID_BANK_NEXT: ArturiaLights.AsOnOffByte(is_knobs_panning),
             ArturiaLights.ID_BANK_PREVIOUS: ArturiaLights.AsOnOffByte(is_mixer_mode),
         })
+
+        if is_plugin_mode:
+            values = [127 if v else 0 for v in self._get_current_toggle_values()]
+            self._lights.SetBankLights(values)
+        else:
+            bank_toggle_status = [False]*9
+            if channels.selectedChannel() < 9:
+                bank_toggle_status[channels.selectedChannel()] = True
+            values = [127 if v else 0 for v in bank_toggle_status]
+            self._lights.SetBankLights(values)
+
+    def _select_one_channel(self, index):
+        if index >= channels.channelCount():
+            return
+
+        if SCRIPT_VERSION >= 8:
+            channels.selectOneChannel(index)
+        else:
+            channels.deselectAll()
+            channels.selectChannel(index, 1)
