@@ -520,7 +520,7 @@ class ArturiaMidiProcessor:
 
     def OnBankNextShortPress(self, event):
         debug.log('OnBankNext (short)', 'Dispatched', event=event)
-        self._controller.encoders().NextKnobsPage()
+        self._controller.encoders().NextControlsPage()
 
     def OnBankNextLongPress(self, event):
         debug.log('OnBankNext (long)', 'Dispatched', event=event)
@@ -531,7 +531,7 @@ class ArturiaMidiProcessor:
 
     def OnBankPrevShortPress(self, event):
         debug.log('OnBankPrev (short)', 'Dispatched', event=event)
-        self._controller.encoders().NextSlidersPage()
+        self._controller.encoders().PrevControlsPage()
 
     def OnBankPrevLongPress(self, event):
         debug.log('OnBankPrev (long)', 'Dispatched', event=event)
@@ -539,11 +539,11 @@ class ArturiaMidiProcessor:
 
     def OnLivePart1(self, event):
         debug.log('OnLivePart1', 'Dispatched', event=event)
-        self._controller.encoders().SetCurrentMode(ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS)
+        self._controller.encoders().ToggleKnobMode()
 
     def OnLivePart2(self, event):
         debug.log('OnLivePart2', 'Dispatched', event=event)
-        self._controller.encoders().SetCurrentMode(ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW)
+        self._controller.encoders().ToggleCurrentMode()
 
     def OnBankSelect(self, event):
         bank_index = event.controlNum - 24

@@ -85,18 +85,6 @@ class ArturiaController:
         pattern_number = patterns.patternNumber()
         pattern_name = patterns.getPatternName(pattern_number)
 
-        # Update knob mode
-        if self._encoders.GetCurrentMode() == ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS:
-            if SCRIPT_VERSION >= 8:
-                plugin_name = plugins.getPluginName(active_index) if plugins.isValid(active_index) else ''
-            else:
-                plugin_name = ''
-            self._encoders.SetKnobMode(plugin_name)
-            self._encoders.SetSliderMode(plugin_name)
-
-        if channel_name.startswith('Analog Lab'):
-            channel_name='Analog Lab'
-
         self._paged_display.SetPageLines(
             'main',
             line1='[%d:%d] %s' % (active_index + 1, pattern_number, channel_name),
