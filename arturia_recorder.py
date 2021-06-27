@@ -22,7 +22,7 @@ class Recorder:
         timestamp = int(round(time.time() * 1000))
         channel = channels.selectedChannel()
         velocity = event.velocity
-        if event.status == 0x80:
+        if 128 <= event.status <= 143:   # Midi off event
             velocity = 0
         self._savedata.Get(recording_key).extend([timestamp, channel, event.note, velocity])
 

@@ -131,7 +131,7 @@ def OnMidiMsg(event):
         if event.data1 == 64:
             global _sustain_enabled
             _sustain_enabled = (event.data2 == 127)
-    elif event.status in (144, 128):  # Midi note on
+    elif 128 <= event.status <= 159:  # Midi note on
         _recorder.OnMidiNote(event)
     elif event.status == arturia_midi.INTER_SCRIPT_STATUS_BYTE:
         if event.data1 == arturia_midi.INTER_SCRIPT_DATA1_IDLE_CMD:
