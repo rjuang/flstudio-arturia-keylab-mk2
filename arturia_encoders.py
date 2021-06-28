@@ -196,7 +196,7 @@ class ArturiaInputControls:
         self._display_hint('Controlling', 'Tracks %d - %d' % (begin_track, end_track))
 
     def _display_plugin_update_hint(self):
-        self._display_hint('Controls on Bank', '%d' % self._current_index_plugin)
+        self._display_hint('Setting MIDI Ch', 'To: %2d' % (self._current_index_plugin + 1))
 
     def ProcessKnobInput(self, knob_index, delta):
         if self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW:
@@ -221,7 +221,9 @@ class ArturiaInputControls:
         data2 = value
         message = status + (data1 << 8) + (data2 << 16) + (arturia_midi.PLUGIN_PORT_NUM << 24)
         device.forwardMIDICC(message, 2)
-        self._display_hint('Plugin fader', '%02X %02X %02X' % (status, data1, data2))
+        pretty_value = int((value / 127) * 100)
+        self._display_hint('Slider %d Ch: %2d' % (index + 1, self._current_index_plugin + 1),
+                           '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2))
 
     def _process_plugin_knob_event(self, index, delta):
         status = 176 + self._current_index_plugin
@@ -229,7 +231,9 @@ class ArturiaInputControls:
         data2 = self._update_knob_value(status, data1, delta)
         message = status + (data1 << 8) + (data2 << 16) + (arturia_midi.PLUGIN_PORT_NUM << 24)
         device.forwardMIDICC(message, 2)
-        self._display_hint('Plugin encoder', '%02X %02X %02X' % (status, data1, data2))
+        pretty_value = int((data2 / 127) * 100)
+        self._display_hint('Enc. %d  Ch: %2d' % (index + 1, self._current_index_plugin + 1),
+                           '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2))
 
     def _process_knobs_mixer_track(self, knob_index, delta):
         track_index = (self._current_index_mixer * 8 + knob_index) + 1
