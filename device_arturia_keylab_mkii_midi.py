@@ -90,6 +90,10 @@ def BlinkLight(note):
         _pad_recording_task = _scheduler.ScheduleTask(lambda: BlinkLight(note), delay=1000)
 
 
+def OnIdle():
+    _scheduler.Idle()
+
+
 def OnMidiMsg(event):
     global _drop_note, _buttons_held, _recorder
     note = event.data1
@@ -134,14 +138,10 @@ def OnMidiMsg(event):
     elif 128 <= event.status <= 159:  # Midi note on
         _recorder.OnMidiNote(event)
     elif event.status == arturia_midi.INTER_SCRIPT_STATUS_BYTE:
-        if event.data1 == arturia_midi.INTER_SCRIPT_DATA1_IDLE_CMD:
-            _scheduler.Idle()
-            log_msg = False
-        elif event.data1 == arturia_midi.INTER_SCRIPT_DATA1_BTN_DOWN_CMD:
+        if event.data1 == arturia_midi.INTER_SCRIPT_DATA1_BTN_DOWN_CMD:
             _buttons_held.add(event.data2)
             if event.data2 == STOP_BUTTON_ID:
                 _recorder.StopRecording()
-
         elif event.data1 == arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD and event.data2 in _buttons_held:
             _buttons_held.remove(event.data2)
 

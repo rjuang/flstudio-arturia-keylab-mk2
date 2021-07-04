@@ -30,10 +30,6 @@ def OnInit():
 
 def OnIdle():
     _controller.Idle()
-    arturia_midi.dispatch_message_to_other_scripts(
-        arturia_midi.INTER_SCRIPT_STATUS_BYTE,
-        arturia_midi.INTER_SCRIPT_DATA1_IDLE_CMD,
-        0)
 
 
 def OnMidiMsg(event):
