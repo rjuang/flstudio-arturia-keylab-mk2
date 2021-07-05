@@ -2,6 +2,9 @@ import time
 
 from arturia_midi import send_to_device
 
+# Set to true to force refresh.
+FORCE_REFRESH = True
+
 
 class ArturiaDisplay:
     """ Manages scrolling display of two lines so that long strings can be scrolled on each line. """
@@ -99,7 +102,7 @@ class ArturiaDisplay:
         data += bytes([0x7F])
 
         self._update_scroll_pos()
-        if self._last_payload != data:
+        if self._last_payload != data or FORCE_REFRESH:
             send_to_device(data)
             self._last_payload = data
 
