@@ -1,4 +1,5 @@
 import arrangement
+import arturia_leds
 import channels
 import general
 import midi
@@ -91,6 +92,17 @@ class ArturiaController:
             line2='%s' % pattern_name)
         self._encoders.Refresh()
 
+    def _TurnOffOctaveLights(self):
+        # Disable blinking lights on octave keyboard
+        if time.time() - self._last_send >= 0.5:
+            self._lights.SetLights({
+                ArturiaLights.ID_OCTAVE_PLUS: ArturiaLights.LED_OFF,
+                ArturiaLights.ID_OCTAVE_MINUS: ArturiaLights.LED_OFF,
+            })
+            self._last_send = time.time()
+
     def Idle(self):
         self._scheduler.Idle()
         self._paged_display.Refresh()
+        if arturia_leds.ESSENTIAL_KEYBOARD:
+            self._TurnOffOctaveLights()
