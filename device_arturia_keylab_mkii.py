@@ -45,8 +45,10 @@ def OnMidiMsg(event):
         _payload_buffer.append(event.data1)
         _payload_buffer.append(event.data2)
         event.handled = True
-    elif _processor.ProcessEvent(event):
-        event.handled = True
+    else:
+        if _processor.ProcessEvent(event):
+            event.handled = True
+        _controller.RefreshDisplay()
 
 
 def OnRefresh(flags):

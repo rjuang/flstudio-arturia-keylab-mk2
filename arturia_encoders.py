@@ -213,7 +213,7 @@ class ArturiaInputControls:
             track_name = 'Master Track'
         self._set_mixer_param(midi.REC_Mixer_Vol, value, track_index=track_index)
         volume = int((value / 127.0) * 100.0)
-        self._display_hint(track_name, 'Volume %d%%' % volume)
+        self._display_hint(track_name, 'Volume: %d%%' % volume)
 
     def _process_plugin_slider_event(self, index, value):
         status = 176 + self._current_index_plugin

@@ -101,8 +101,10 @@ class ArturiaController:
             })
             self._last_send = time.time()
 
+    def RefreshDisplay(self):
+        self._paged_display.Refresh()
+
     def Idle(self):
         self._scheduler.Idle()
-        self._paged_display.Refresh()
         if arturia_leds.ESSENTIAL_KEYBOARD:
             self._TurnOffOctaveLights()
