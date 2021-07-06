@@ -207,7 +207,7 @@ class ArturiaInputControls:
 
     def _process_sliders_track_volume(self, slider_index, value):
         track_index = (self._current_index_mixer * 8 + slider_index) + 1
-        track_name = 'Track %d' % track_index
+        track_name = 'Track  %d' % track_index
         if slider_index == 8:
             track_index = 0
             track_name = 'Master Track'
