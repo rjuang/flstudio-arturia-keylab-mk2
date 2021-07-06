@@ -2,6 +2,7 @@
 # url=https://github.com/rjuang/flstudio-arturia-keylab-mk2
 # receiveFrom=Arturia Keylab mkII DAW (MIDIIN2/MIDIOUT2)
 import channels
+import config
 import device
 
 import arturia_midi
@@ -128,8 +129,8 @@ def OnMidiMsg(event):
             # User switched to Analog Lab mode.
             log('analoglab', 'Switched to Analog Lab.')
 
-        portNum = 10
-        message = event.status + (event.data1 << 8) + (event.data2 << 16) + (portNum << 24)
+        port_num = config.PLUGIN_FORWARDING_MIDI_IN_PORT
+        message = event.status + (event.data1 << 8) + (event.data2 << 16) + (port_num << 24)
         device.forwardMIDICC(message, 2)
 
         if event.data1 == 64:

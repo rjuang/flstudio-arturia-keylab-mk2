@@ -1,6 +1,8 @@
 from arturia_leds import ArturiaLights
 
+import config
 import playlist
+import ui
 
 
 class VisualMetronome:
@@ -24,6 +26,10 @@ class VisualMetronome:
 
     def ProcessBeat(self, value):
         """ Notify the metronome that a beat occured (e.g. OnUpdateBeatIndicator). """
+        if config.METRONOME_LIGHTS_ONLY_WHEN_METRONOME_ENABLED and not ui.isMetronomeEnabled():
+            # Disable metronome if configured to correlate to metronome toggle and is disabled.
+            return
+
         lights = ArturiaLights.ZeroMatrix()
         current_bst_position = (playlist.getVisTimeBar(),
                                 playlist.getVisTimeStep(),
@@ -49,8 +55,12 @@ class VisualMetronome:
             col = self._beat_count % num_cols
             lights[row][col] = ArturiaLights.LED_ON
             two_step = self._beat_count % 2 == 0
-            self._lights.SetPadLights(lights)
-            self._lights.SetLights({
-                ArturiaLights.ID_TRANSPORTS_REWIND: ArturiaLights.AsOnOffByte(two_step),
-                ArturiaLights.ID_TRANSPORTS_FORWARD: ArturiaLights.AsOnOffByte(not two_step),
-            })
+
+            if config.ENABLE_PAD_METRONOME_LIGHTS:
+                self._lights.SetPadLights(lights)
+
+            if config.ENABLE_TRANSPORTS_METRONOME_LIGHTS:
+                self._lights.SetLights({
+                    ArturiaLights.ID_TRANSPORTS_REWIND: ArturiaLights.AsOnOffByte(two_step),
+                    ArturiaLights.ID_TRANSPORTS_FORWARD: ArturiaLights.AsOnOffByte(not two_step),
+                })

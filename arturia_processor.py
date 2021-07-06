@@ -3,6 +3,7 @@ import channels
 
 import arturia_leds
 import arturia_midi
+import config
 import debug
 import general
 import midi
@@ -341,10 +342,11 @@ class ArturiaMidiProcessor:
     def OnTransportsPausePlay(self, event):
         debug.log('OnTransportsPausePlay', 'Dispatched', event=event)
         song_mode = transport.getLoopMode() == 1
-        if song_mode:
-            self._show_and_focus(midi.widPlaylist)
-        else:
-            self._show_and_focus(midi.widPianoRoll)
+        if config.ENABLE_PIANO_ROLL_FOCUS_DURING_RECORD_AND_PLAYBACK:
+            if song_mode:
+                self._show_and_focus(midi.widPlaylist)
+            else:
+                self._show_and_focus(midi.widPianoRoll)
         transport.globalTransport(midi.FPT_Play, midi.FPT_Play, event.pmeFlags)
 
     def OnTransportsRecord(self, event):

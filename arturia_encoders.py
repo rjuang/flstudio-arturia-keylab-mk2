@@ -6,7 +6,9 @@ import mixer
 import transport
 import ui
 
+import arturia_leds
 import arturia_midi
+import config
 from arturia_display import ArturiaDisplay
 from arturia_leds import ArturiaLights
 from debug import log
@@ -75,25 +77,6 @@ class ArturiaInputControls:
     def _to_rec_value(value, limit=midi.FromMIDI_Max):
         return int((value / 127.0) * limit)
 
-    def _set_plugin_param(self, param_id, value, incremental=False):
-        if param_id < 0:
-            # Ignore negative values
-            self._display_unset()
-            return
-        plugin_idx = channels.selectedChannel()
-        event_id = channels.getRecEventId(plugin_idx) + midi.REC_Chan_Plugin_First + param_id
-        if incremental:
-            value = channels.incEventValue(event_id, value, 0.01)
-        else:
-            value = ArturiaInputControls._to_rec_value(value, limit=65536)
-        general.processRECEvent(
-            event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
-                             | midi.REC_UpdateControl | midi.REC_SetChanged)
-        if not self._check_and_show_hint() and SCRIPT_VERSION >= 8:
-            param_name = plugins.getParamName(param_id, plugin_idx)
-            param_value = plugins.getParamValue(param_id, plugin_idx) / 1016.0 * 100.0
-            self._display_hint(param_name, '%0.2f' % param_value)
-
     def _set_mixer_param(self, param_id, value, incremental=False, track_index=0, plugin_index=0):
         event_id = mixer.getTrackPluginId(track_index, plugin_index) + param_id
         if incremental:
@@ -130,20 +113,6 @@ class ArturiaInputControls:
         bank_values[button_index] = not bank_values[button_index]
         self._plugin_toggle_map[key] = bank_values
         return 127 if bank_values[button_index] else 0
-
-    def _set_mixer_param_fn(self, param_id, incremental=False, track_index=0, plugin_index=0):
-        return lambda v: self._set_mixer_param(
-            param_id, v, incremental=incremental, track_index=track_index, plugin_index=plugin_index)
-
-    def _set_plugin_param_fn(self, param_id, incremental=False):
-        return lambda v: self._set_plugin_param(param_id, v, incremental=incremental)
-
-    def _plugin_map_for(self, offsets, incremental=False):
-        return [self._set_plugin_param_fn(x, incremental=incremental) for x in offsets]
-
-    def _mixer_map_for(self, param_id, track_indices, incremental=False):
-        return [self._set_mixer_param_fn(param_id, track_index=t, incremental=incremental)
-                for t in track_indices]
 
     def __init__(self, paged_display, lights):
         self._paged_display = paged_display
@@ -213,7 +182,9 @@ class ArturiaInputControls:
             track_name = 'Master Track'
         self._set_mixer_param(midi.REC_Mixer_Vol, value, track_index=track_index)
         volume = int((value / 127.0) * 100.0)
-        self._display_hint(track_name, 'Volume: %d%%' % volume)
+        if not arturia_leds.ESSENTIAL_KEYBOARD:
+            # Essential keyboards trigger an additional display update when slider is moved.
+            self._display_hint(track_name, 'Volume: %d%%' % volume)
 
     def _process_plugin_slider_event(self, index, value):
         status = 176 + self._current_index_plugin
@@ -222,8 +193,10 @@ class ArturiaInputControls:
         message = status + (data1 << 8) + (data2 << 16) + (arturia_midi.PLUGIN_PORT_NUM << 24)
         device.forwardMIDICC(message, 2)
         pretty_value = int((value / 127) * 100)
-        self._display_hint('Slider %d Ch: %2d' % (index + 1, self._current_index_plugin + 1),
-                           '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2))
+        if not arturia_leds.ESSENTIAL_KEYBOARD:
+            # Essential keyboards trigger an additional display update when slider is moved.
+            self._display_hint('Slider %d Ch: %2d' % (index + 1, self._current_index_plugin + 1),
+                               '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2))
 
     def _process_plugin_knob_event(self, index, delta):
         status = 176 + self._current_index_plugin
@@ -273,6 +246,10 @@ class ArturiaInputControls:
             self._update_lights()
 
     def _display_hint(self, hint_title, hint_value):
+        if config.HINT_DISPLAY_ALL_CAPS:
+            hint_title = hint_title.upper()
+            hint_value = hint_value.upper()
+
         hint_title = ArturiaDisplay.abbreviate(hint_title)
 
         self._paged_display.SetPageLines('hint', line1=hint_title, line2=hint_value)
