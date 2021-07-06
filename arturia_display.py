@@ -2,8 +2,10 @@ import time
 
 from arturia_midi import send_to_device
 
-# Set to true to force refresh.
-FORCE_REFRESH = True
+# Minimum interval required between display updates. NOTE: If this is too low, it's possible to overload the display
+# and cause the keyboard to get into a bad state where display changes are rejected until keyboard is powered off.
+# Most standard LCD character panels are 9600 bps. This is 9600 / 8 bytes per second / 32 bytes/frame = 37.5 frames per
+# second. If we go by 28 fps for human perception, this translates to roughly 35 ms between intervals.
 INTERVAL_MS_BETWEEN_REQUESTS = 35
 
 
@@ -101,7 +103,7 @@ class ArturiaDisplay:
             shortened_words.append(w)
         return ' '.join(shortened_words)
 
-    def _refresh_display(self, force_refresh=False, schedule=True):
+    def _refresh_display(self, schedule=True):
         # Internally called to refresh the display now.
         data = bytes([0x04, 0x00, 0x60])
         data += bytes([0x01]) + self._get_line1_bytes() + bytes([0x00])
@@ -117,8 +119,7 @@ class ArturiaDisplay:
                 lambda: self._refresh_display(schedule=False),
                 delay=INTERVAL_MS_BETWEEN_REQUESTS)
 
-        if force_refresh or current_time_ms - self._last_send_ms > INTERVAL_MS_BETWEEN_REQUESTS:
-            print('Set display: ' + self._line1 + ' | ' + self._line2)
+        if current_time_ms - self._last_send_ms > INTERVAL_MS_BETWEEN_REQUESTS:
             send_to_device(data)
             self._last_send_ms = current_time_ms
             self._last_payload = data
