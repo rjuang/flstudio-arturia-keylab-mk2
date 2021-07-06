@@ -26,7 +26,7 @@ class ArturiaController:
     """Controller responsible for managing all the different components in a single class. """
     def __init__(self):
         self._scheduler = Scheduler()
-        self._display = ArturiaDisplay()
+        self._display = ArturiaDisplay(self._scheduler)
         self._paged_display = ArturiaPagedDisplay(self._display)
         self._lights = ArturiaLights()
         self._metronome = VisualMetronome(self._lights)

@@ -4,11 +4,13 @@ from arturia_midi import send_to_device
 
 # Set to true to force refresh.
 FORCE_REFRESH = True
+INTERVAL_MS_BETWEEN_REQUESTS = 35
 
 
 class ArturiaDisplay:
     """ Manages scrolling display of two lines so that long strings can be scrolled on each line. """
-    def __init__(self):
+    def __init__(self, scheduler):
+        self._scheduler = scheduler
         # Holds the text to display on first line. May exceed the 16-char display limit.
         self._line1 = ' '
         # Holds the text to display on second line. May exceed the 16-char display limit.
@@ -26,12 +28,17 @@ class ArturiaDisplay:
         self._line2_display_offset = 0
         # Last timestamp in milliseconds in which the text was updated.
         self._last_update_ms = 0
+        # Last timestamp in milliseconds when bytes were sent.
+        self._last_send_ms = 0
+
         # Minimum interval before text is scrolled
         self._scroll_interval_ms = 500
         # How many characters to allow last char to scroll before starting over.
         self._end_padding = 8
         # Track what's currently being displayed
         self._last_payload = bytes()
+        # Last idle scheduled task
+        self._last_scheduled_task = None
 
     def _get_line1_bytes(self):
         # Get up to 16-bytes the exact chars to display for line 1.
@@ -94,16 +101,26 @@ class ArturiaDisplay:
             shortened_words.append(w)
         return ' '.join(shortened_words)
 
-    def _refresh_display(self):
+    def _refresh_display(self, force_refresh=False, schedule=True):
         # Internally called to refresh the display now.
         data = bytes([0x04, 0x00, 0x60])
         data += bytes([0x01]) + self._get_line1_bytes() + bytes([0x00])
         data += bytes([0x02]) + self._get_line2_bytes() + bytes([0x00])
         data += bytes([0x7F])
-
         self._update_scroll_pos()
-        if self._last_payload != data or FORCE_REFRESH:
+        current_time_ms = self.time_ms()
+
+        if schedule:
+            if self._last_scheduled_task:
+                self._scheduler.CancelTask(self._last_scheduled_task)
+            self._last_scheduled_task = self._scheduler.ScheduleTask(
+                lambda: self._refresh_display(schedule=False),
+                delay=INTERVAL_MS_BETWEEN_REQUESTS)
+
+        if force_refresh or current_time_ms - self._last_send_ms > INTERVAL_MS_BETWEEN_REQUESTS:
+            print('Set display: ' + self._line1 + ' | ' + self._line2)
             send_to_device(data)
+            self._last_send_ms = current_time_ms
             self._last_payload = data
 
     def ResetScroll(self):
@@ -135,6 +152,5 @@ class ArturiaDisplay:
 
     def Refresh(self):
         """ Called to refresh the display, possibly with updated text. """
-        if self.time_ms() - self._last_update_ms >= self._scroll_interval_ms:
-            self._refresh_display()
+        self._refresh_display()
         return self
