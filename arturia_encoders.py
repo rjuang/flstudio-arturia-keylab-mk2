@@ -182,9 +182,7 @@ class ArturiaInputControls:
             track_name = 'Master Track'
         self._set_mixer_param(midi.REC_Mixer_Vol, value, track_index=track_index)
         volume = int((value / 127.0) * 100.0)
-        if not arturia_leds.ESSENTIAL_KEYBOARD:
-            # Essential keyboards trigger an additional display update when slider is moved.
-            self._display_hint(track_name, 'Volume: %d%%' % volume)
+        self._display_hint(track_name, 'Volume: %d%%' % volume)
 
     def _process_plugin_slider_event(self, index, value):
         status = 176 + self._current_index_plugin
@@ -193,10 +191,8 @@ class ArturiaInputControls:
         message = status + (data1 << 8) + (data2 << 16) + (arturia_midi.PLUGIN_PORT_NUM << 24)
         device.forwardMIDICC(message, 2)
         pretty_value = int((value / 127) * 100)
-        if not arturia_leds.ESSENTIAL_KEYBOARD:
-            # Essential keyboards trigger an additional display update when slider is moved.
-            self._display_hint('Slider %d Ch: %2d' % (index + 1, self._current_index_plugin + 1),
-                               '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2))
+        self._display_hint('Slider %d Ch: %2d' % (index + 1, self._current_index_plugin + 1),
+                           '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2))
 
     def _process_plugin_knob_event(self, index, delta):
         status = 176 + self._current_index_plugin
