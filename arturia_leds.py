@@ -1,6 +1,8 @@
+import arturia_midi
 from arturia_midi import send_to_device
 
 import device
+import utils
 
 ESSENTIAL_KEYBOARD = 'mkII' not in device.getName()
 
@@ -138,12 +140,56 @@ class ArturiaLights:
         return ArturiaLights.LED_ON if is_on else ArturiaLights.LED_OFF
 
     @staticmethod
-    def ZeroMatrix():
+    def ZeroMatrix(zero=0):
         num_rows = len(ArturiaLights.MATRIX_IDS_PAD)
         num_cols = len(ArturiaLights.MATRIX_IDS_PAD[0])
-        return [[0]*num_cols for _ in range(num_rows)]
+        return [[zero]*num_cols for _ in range(num_rows)]
 
-    def SetPadLights(self, matrix_values):
+    @staticmethod
+    def rgb2int(red, green, blue):
+        bitmask = 0xFF
+        red &= bitmask
+        green &= bitmask
+        blue &= bitmask
+        return (red << 16) | (green << 8) | blue
+
+    @staticmethod
+    def int2rgb(value):
+        bitmask = 0xFF
+        red = (value >> 16) & bitmask
+        green = (value >> 8) & bitmask
+        blue = value & bitmask
+        return red, green, blue
+
+    @staticmethod
+    def to7bit(value):
+        return int(float(value) * (127.0 / 255.0))
+
+    @staticmethod
+    def to7bitColor(color):
+        r, g, b = ArturiaLights.int2rgb(color)
+        r = ArturiaLights.to7bit(r)
+        g = ArturiaLights.to7bit(g)
+        b = ArturiaLights.to7bit(b)
+        return ArturiaLights.rgb2int(r, g, b)
+
+    @staticmethod
+    def mapToClosestHue(rgb, sat=0.7, value=0.02, maxrgb=127):
+        h, _, _ = utils.RGBToHSVColor(rgb)
+        s = sat
+        v = value
+        r, g, b = utils.HSVtoRGB(h, s, v)
+        return ArturiaLights.rgb2int(int(maxrgb*r), int(maxrgb*g), int(maxrgb*b))
+
+    @staticmethod
+    def fadedColor(rgb):
+        return ArturiaLights.mapToClosestHue(rgb, sat=1.0, value=0.02, maxrgb=127)
+
+    @staticmethod
+    def fullColor(rgb):
+        return ArturiaLights.mapToClosestHue(rgb, sat=1.0, value=0.2, maxrgb=127)
+
+    def SetPadLights(self, matrix_values, rgb=False):
         """ Set the pad lights given a matrix of color values to set the pad with.
         :param matrix_values: 4x4 array of arrays containing the LED color values.
         """
@@ -154,9 +200,9 @@ class ArturiaLights:
         for r in range(num_rows):
             for c in range(num_cols):
                 led_map[ArturiaLights.MATRIX_IDS_PAD[r][c]] = matrix_values[r][c]
-        self.SetLights(led_map)
+        self.SetLights(led_map, rgb=rgb)
 
-    def SetBankLights(self, array_values):
+    def SetBankLights(self, array_values, rgb=False):
         """ Set the bank lights given an array of color values to set the bank lights with.
 
         :param array_values: a 9-element array containing the LED color values.
@@ -165,14 +211,26 @@ class ArturiaLights:
             return
 
         led_map = {k: v for k, v in zip(ArturiaLights.ARRAY_IDS_BANK_SELECT, array_values)}
-        self.SetLights(led_map)
+        self.SetLights(led_map, rgb=rgb)
 
-    def SetLights(self, led_mapping):
+    def SetLights(self, led_mapping, rgb=False):
         """ Given a map of LED ids to color value, construct and send a command with all the led mapping. """
         data = bytes([])
         for led_id, led_value in led_mapping.items():
             if led_id == ArturiaLights.MISSING:
                 # Do not toggle/set lights that are missing
                 continue
-            data += bytes([led_id, led_value])
-        self._send_fn(ArturiaLights.SET_MONOCHROME_LIGHT_COMMAND + data)
+            if rgb:
+                r, g, b = ArturiaLights.int2rgb(led_value)
+                if data:
+                    # Need to prefix with SYSEX footer and header
+                    data += bytes(arturia_midi.SYSEX_FOOTER)
+                    data += bytes(arturia_midi.SYSEX_HEADER)
+                data += ArturiaLights.SET_RGB_LIGHT_COMMAND + bytes([led_id, r, g, b])
+            else:
+                data += bytes([led_id, led_value])
+
+        if rgb:
+            self._send_fn(data)
+        else:
+            self._send_fn(ArturiaLights.SET_MONOCHROME_LIGHT_COMMAND + data)

@@ -150,6 +150,7 @@ class ArturiaInputControls:
         else:
             self._current_index_plugin = (self._current_index_plugin + 1) % ArturiaInputControls.MAX_NUM_PAGES
             self._display_plugin_update_hint()
+        self._update_lights()
 
     def PrevControlsPage(self):
         if self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW:
@@ -158,6 +159,7 @@ class ArturiaInputControls:
         else:
             self._current_index_plugin = (self._current_index_plugin - 1) % ArturiaInputControls.MAX_NUM_PAGES
             self._display_plugin_update_hint()
+        self._update_lights()
 
     def _display_mixer_update_hint(self):
         begin_track = self._current_index_mixer * 8 + 1
@@ -229,7 +231,7 @@ class ArturiaInputControls:
 
     def ProcessBankSelection(self, button_index):
         if self._current_mode != ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS:
-            self._select_one_channel(button_index)
+            self._select_one_channel(button_index + (8 * self._current_index_mixer))
         else:
             self._process_plugin_button_event(button_index)
 
@@ -281,17 +283,23 @@ class ArturiaInputControls:
         })
 
         if is_plugin_mode:
-            values = [127 if v else 0 for v in self._get_current_toggle_values()]
-            self._lights.SetBankLights(values)
+            values = [ArturiaLights.rgb2int(0x7F, 0, 0) if v else 0 for v in self._get_current_toggle_values()]
+            self._lights.SetBankLights(values, rgb=True)
         else:
-            bank_toggle_status = [False]*9
-            if channels.selectedChannel() < 9:
-                bank_toggle_status[channels.selectedChannel()] = True
-            values = [127 if v else 0 for v in bank_toggle_status]
-            self._lights.SetBankLights(values)
+            values = [0]*9
+            for i in range(8):
+                idx = (self._current_index_mixer * 8) + i
+                if idx < channels.channelCount():
+                    values[i] = ArturiaLights.fadedColor(channels.getChannelColor(idx))
+
+            channel_idx = channels.selectedChannel()
+            selected_idx = channel_idx - (self._current_index_mixer * 8)
+            if 0 <= selected_idx < 8:
+                values[selected_idx] = ArturiaLights.fullColor(channels.getChannelColor(channel_idx))
+            self._lights.SetBankLights(values, rgb=True)
 
     def _select_one_channel(self, index):
-        if index >= channels.channelCount():
+        if index >= channels.channelCount() or index < 0:
             return
 
         if SCRIPT_VERSION >= 8:

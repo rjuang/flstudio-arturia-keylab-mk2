@@ -75,12 +75,6 @@ class ArturiaController:
         }
         self._lights.SetLights(led_map)
 
-        # Update selected channel
-        bank_lights = [ArturiaLights.LED_OFF] * 9
-        if active_index < len(bank_lights):
-            bank_lights[active_index] = ArturiaLights.LED_ON
-        self._lights.SetBankLights(bank_lights)
-
         # Update display
         channel_name = channels.getChannelName(active_index)
         pattern_number = patterns.patternNumber()

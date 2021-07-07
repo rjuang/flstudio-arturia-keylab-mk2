@@ -10,6 +10,8 @@ INTER_SCRIPT_DATA1_BEGIN_PAYLOAD_CMD = 0xFE
 INTER_SCRIPT_DATA1_END_PAYLOAD_CMD = 0xFF
 PAYLOAD_STATUS_BYTE = 0x01
 PLUGIN_PORT_NUM = 10
+SYSEX_HEADER = [0xF0, 0x00, 0x20, 0x6B, 0x7F, 0x42]
+SYSEX_FOOTER = [0xF7]
 
 
 class MidiEventDispatcher:
@@ -73,8 +75,7 @@ def send_to_device(data):
     """Sends a data payload to Arturia device. """
     # debug.log('CMD', 'Sending payload: ' + str(data))
     # Reference regarding SysEx code : # https://forum.arturia.com/index.php?topic=90496.0
-    device.midiOutSysex(bytes([0xF0, 0x00, 0x20, 0x6B, 0x7F, 0x42]) +
-                        bytes(data) + bytes([0xF7]))
+    device.midiOutSysex(bytes(SYSEX_HEADER) + bytes(data) + bytes(SYSEX_FOOTER))
 
 
 def dispatch_message_to_other_scripts(status, data1, data2, payload=None):
