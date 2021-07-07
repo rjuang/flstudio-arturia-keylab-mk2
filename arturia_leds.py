@@ -16,6 +16,9 @@ class ArturiaLights:
 
     MISSING = 0
 
+    # Maximum command byte length
+    #MAX_CMD_BYTE_LEN = 32
+
     # IDs for all of the buttons with lights.
     ID_OCTAVE_MINUS = 16
     ID_OCTAVE_PLUS = 17
@@ -200,7 +203,7 @@ class ArturiaLights:
         for r in range(num_rows):
             for c in range(num_cols):
                 led_map[ArturiaLights.MATRIX_IDS_PAD[r][c]] = matrix_values[r][c]
-        self.SetLights(led_map, rgb=rgb)
+            self.SetLights(led_map, rgb=rgb)
 
     def SetBankLights(self, array_values, rgb=False):
         """ Set the bank lights given an array of color values to set the bank lights with.
@@ -221,6 +224,9 @@ class ArturiaLights:
                 # Do not toggle/set lights that are missing
                 continue
             if rgb:
+                #if len(data) >= ArturiaLights.MAX_CMD_BYTE_LEN:
+                #    self._send_fn(data)
+                #    data = bytes([])
                 r, g, b = ArturiaLights.int2rgb(led_value)
                 if data:
                     # Need to prefix with SYSEX footer and header

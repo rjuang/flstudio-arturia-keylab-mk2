@@ -18,3 +18,6 @@ PLUGIN_FORWARDING_MIDI_IN_PORT = 10
 
 # Set to True to put display text hints in all caps.
 HINT_DISPLAY_ALL_CAPS = False
+
+# Set to True to enable color bank lights. On Essential keyboards, the pad colors are set to the active channel color.
+ENABLE_COLORIZE_BANK_LIGHTS = True
