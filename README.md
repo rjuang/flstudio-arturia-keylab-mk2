@@ -19,8 +19,10 @@ I can also be reached via [Discord](https://discord.gg/aqA8rnnTFp)
 ## Setting Up
 Video link describing setup below:
 
+### Windows Setup Video ###
 [![](http://img.youtube.com/vi/KUNfQjWnZwc/0.jpg)](http://www.youtube.com/watch?v=KUNfQjWnZwc "Setup instructions for Windows users")
 
+### Mac Setup Video ###
 [![](http://img.youtube.com/vi/woxzfQc238s/0.jpg)](http://www.youtube.com/watch?v=woxzfQc238s "Setup instructions for Mac users")
 
 You can simply clone this project into the folder:
