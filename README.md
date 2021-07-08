@@ -4,7 +4,10 @@
 The goal of this MIDI Script is to make Arturia Keylab mkII more friendlier to use with FL Studio.
 
 ## Demo (updated video, some changes to default start since recording)
-[![](http://img.youtube.com/vi/Ts2SnW9r2fc/0.jpg)](http://www.youtube.com/watch?v=Ts2SnW9r2fc "Updated Demo of Script")
+[![](http://img.youtube.com/vi/Ts2SnW9r2fc/0.jpg)](http://www.youtube.com/watch?v=Ts2SnW9r2fc "Old Demo of Script")
+
+Refer to this [playlist](https://youtube.com/playlist?list=PLet-RTUimaMTyzOR9OvTb7-DQWe5RmWY8) for the latest content covering different features of the midiscript functionality in shorter videos.
+
 
 ## Discussion Thread
 There is a discussion thread you can provide feedback or ask questions at [here](https://forum.image-line.com/viewtopic.php?f=1994&t=243170)
@@ -16,7 +19,9 @@ I can also be reached via [Discord](https://discord.gg/aqA8rnnTFp)
 ## Setting Up
 Video link describing setup below:
 
-[![](http://img.youtube.com/vi/TXZ3u1srTmw/0.jpg)](http://www.youtube.com/watch?v=TXZ3u1srTmw "Video showing how to install script into FL Studio")
+[![](http://img.youtube.com/vi/KUNfQjWnZwc/0.jpg)](http://www.youtube.com/watch?v=KUNfQjWnZwc "Setup instructions for Windows users")
+
+[![](http://img.youtube.com/vi/woxzfQc238s/0.jpg)](http://www.youtube.com/watch?v=woxzfQc238s "Setup instructions for Mac users")
 
 You can simply clone this project into the folder:
 ``` 
