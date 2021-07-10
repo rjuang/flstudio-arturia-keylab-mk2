@@ -124,18 +124,6 @@ def OnMidiMsg(event):
                         log('midi', 'Long press canceled for %s' % str(event.data1))
                     del _longpress_status[event.data1]
 
-    elif event.status == 176 or event.status == 224:
-        if event.data1 == 118 and event.data2 == 127:
-            # User switched to Analog Lab mode.
-            log('analoglab', 'Switched to Analog Lab.')
-
-        port_num = config.PLUGIN_FORWARDING_MIDI_IN_PORT
-        message = event.status + (event.data1 << 8) + (event.data2 << 16) + (port_num << 24)
-        device.forwardMIDICC(message, 2)
-
-        if event.data1 == 64:
-            global _sustain_enabled
-            _sustain_enabled = (event.data2 == 127)
     elif 128 <= event.status <= 159:  # Midi note on
         _recorder.OnMidiNote(event)
     elif event.status == arturia_midi.INTER_SCRIPT_STATUS_BYTE:
@@ -149,6 +137,20 @@ def OnMidiMsg(event):
         # All inter-cmd messages should be marked handled to ensure they do not contribute to influencing FL Studio
         # state
         event.handled = True
+    else:
+        if 0xB0 <= event.status <= 0xBF:
+            if event.data1 == 118 and event.data2 == 127:
+                # User switched to Analog Lab mode.
+                log('analoglab', 'Switched to Analog Lab.')
+            if event.data1 == 64:
+                global _sustain_enabled
+                _sustain_enabled = (event.data2 == 127)
+                log('sustain', 'enabled' if _sustain_enabled else 'disabled')
+
+        # Forward all remaining events to plugin
+        port_num = config.PLUGIN_FORWARDING_MIDI_IN_PORT
+        message = event.status + (event.data1 << 8) + (event.data2 << 16) + (port_num << 24)
+        device.forwardMIDICC(message, 2)
 
     if log_msg:
         log('midi', 'status: %d, data1: %d, data2: %d handled: %s' % (event.status, event.data1, event.data2, str(event.handled)))
