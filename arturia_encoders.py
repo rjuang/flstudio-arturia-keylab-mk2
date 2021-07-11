@@ -323,3 +323,5 @@ class ArturiaInputControls:
         else:
             channels.deselectAll()
             channels.selectChannel(index, 1)
+        self._update_lights()
+
