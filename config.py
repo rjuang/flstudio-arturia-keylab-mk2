@@ -1,5 +1,8 @@
 # User-settable settings to alter behavior of keyboard
 
+# Number representing the last change date
+CHANGE_DATE = 2021_07_16_2347
+
 # Set to True to allow drum pads to light up as a metronome indicator.
 ENABLE_PAD_METRONOME_LIGHTS = True
 
