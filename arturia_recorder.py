@@ -1,3 +1,5 @@
+import arturia_midi
+
 import channels
 import mixer
 import time
@@ -27,12 +29,20 @@ class Recorder:
         self._savedata.Get(recording_key).extend([timestamp, channel, event.note, velocity])
 
     def StartRecording(self, key):
+        arturia_midi.dispatch_message_to_other_scripts(
+            arturia_midi.INTER_SCRIPT_STATUS_BYTE,
+            arturia_midi.INTER_SCRIPT_DATA1_UPDATE_STATE,
+            arturia_midi.INTER_SCRIPT_DATA2_STATE_PAD_RECORD_START)
         self._recording = str(key)
         # Make sure to clear the previous data on new recording
         self._savedata.Put(self._recording, [])
         log('recorder', 'Start recording: %s' % str(self._recording))
 
     def StopRecording(self):
+        arturia_midi.dispatch_message_to_other_scripts(
+            arturia_midi.INTER_SCRIPT_STATUS_BYTE,
+            arturia_midi.INTER_SCRIPT_DATA1_UPDATE_STATE,
+            arturia_midi.INTER_SCRIPT_DATA2_STATE_PAD_RECORD_STOP)
         log('recorder', 'Stop recording: %s' % str(self._recording))
         self._recording = None
         self._savedata.Commit()

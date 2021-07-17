@@ -51,29 +51,32 @@ class ArturiaController:
     def scheduler(self):
         return self._scheduler
 
-    def Sync(self):
+    def Sync(self, flags):
         """ Syncs up all visual indicators on keyboard with changes from FL Studio. """
         # Update buttons
         # Bound active_index between [0, numChannels - 1]
         active_index = max(0, min(channels.channelCount() - 1, channels.selectedChannel()))
-        led_map = {
-            ArturiaLights.ID_TRANSPORTS_RECORD: ArturiaLights.AsOnOffByte(transport.isRecording()),
-            ArturiaLights.ID_TRANSPORTS_LOOP: ArturiaLights.AsOnOffByte(ui.isLoopRecEnabled()),
-            ArturiaLights.ID_GLOBAL_METRO: ArturiaLights.AsOnOffByte(ui.isMetronomeEnabled()),
-            ArturiaLights.ID_GLOBAL_SAVE: ArturiaLights.AsOnOffByte(transport.getLoopMode() == 1),
-            ArturiaLights.ID_GLOBAL_UNDO: ArturiaLights.AsOnOffByte(general.getUndoHistoryLast() == 0),
-            ArturiaLights.ID_TRACK_SOLO: ArturiaLights.AsOnOffByte(channels.isChannelSolo(active_index)),
-            ArturiaLights.ID_TRACK_MUTE: ArturiaLights.AsOnOffByte(channels.isChannelMuted(active_index)),
-            ArturiaLights.ID_TRANSPORTS_STOP: ArturiaLights.AsOnOffByte(not transport.isPlaying()),
-            ArturiaLights.ID_TRANSPORTS_PLAY: ArturiaLights.AsOnOffByte(transport.getSongPos() > 0),
-            ArturiaLights.ID_GLOBAL_OUT: ArturiaLights.AsOnOffByte(
-                arrangement.selectionEnd() > arrangement.selectionStart()),
-            ArturiaLights.ID_NAVIGATION_LEFT: ArturiaLights.AsOnOffByte(ui.getVisible(midi.widChannelRack)),
-            ArturiaLights.ID_NAVIGATION_RIGHT: ArturiaLights.AsOnOffByte(ui.getVisible(midi.widMixer)),
-            ArturiaLights.ID_OCTAVE_PLUS: ArturiaLights.LED_OFF,
-            ArturiaLights.ID_OCTAVE_MINUS: ArturiaLights.LED_OFF,
-        }
-        self._lights.SetLights(led_map)
+
+        if flags & midi.HW_Dirty_LEDs:
+            led_map = {
+                ArturiaLights.ID_TRANSPORTS_RECORD: ArturiaLights.AsOnOffByte(transport.isRecording()),
+                ArturiaLights.ID_TRANSPORTS_LOOP: ArturiaLights.AsOnOffByte(ui.isLoopRecEnabled()),
+                ArturiaLights.ID_GLOBAL_METRO: ArturiaLights.AsOnOffByte(ui.isMetronomeEnabled()),
+                ArturiaLights.ID_GLOBAL_SAVE: ArturiaLights.AsOnOffByte(transport.getLoopMode() == 1),
+                ArturiaLights.ID_GLOBAL_UNDO: ArturiaLights.AsOnOffByte(general.getUndoHistoryLast() == 0),
+                ArturiaLights.ID_TRACK_SOLO: ArturiaLights.AsOnOffByte(channels.isChannelSolo(active_index)),
+                ArturiaLights.ID_TRACK_MUTE: ArturiaLights.AsOnOffByte(channels.isChannelMuted(active_index)),
+                ArturiaLights.ID_TRANSPORTS_STOP: ArturiaLights.AsOnOffByte(not transport.isPlaying()),
+                ArturiaLights.ID_TRANSPORTS_PLAY: ArturiaLights.AsOnOffByte(transport.getSongPos() > 0),
+                ArturiaLights.ID_GLOBAL_OUT: ArturiaLights.AsOnOffByte(
+                    arrangement.selectionEnd() > arrangement.selectionStart()),
+                ArturiaLights.ID_NAVIGATION_LEFT: ArturiaLights.AsOnOffByte(ui.getVisible(midi.widChannelRack)),
+                ArturiaLights.ID_NAVIGATION_RIGHT: ArturiaLights.AsOnOffByte(ui.getVisible(midi.widMixer)),
+                ArturiaLights.ID_OCTAVE_PLUS: ArturiaLights.LED_OFF,
+                ArturiaLights.ID_OCTAVE_MINUS: ArturiaLights.LED_OFF,
+            }
+            self._lights.SetLights(led_map)
+            self._encoders.Refresh()
 
         # Update display
         channel_name = channels.getChannelName(active_index)
@@ -84,7 +87,6 @@ class ArturiaController:
             'main',
             line1='[%d:%d] %s' % (active_index + 1, pattern_number, channel_name),
             line2='%s' % pattern_name)
-        self._encoders.Refresh()
 
     def _TurnOffOctaveLights(self):
         # Disable blinking lights on octave keyboard

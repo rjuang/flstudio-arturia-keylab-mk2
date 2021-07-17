@@ -138,6 +138,8 @@ class ArturiaMidiProcessor:
         self._long_press_tasks = {}
         # Indicates if punch button is pressed (needed for essential keyboards)
         self._punched = False
+        # Indicates pad is recording
+        self._is_pad_recording = False
 
     def circular(self, low, high, x):
         if x > high:
@@ -148,6 +150,9 @@ class ArturiaMidiProcessor:
 
     def clip(self, low, high, x):
         return max(low, min(high, x))
+
+    def NotifyPadRecordingState(self, is_recording):
+        self._is_pad_recording = is_recording
 
     def OnUpdateVolume(self, delta):
         channel = channels.selectedChannel()
@@ -352,13 +357,14 @@ class ArturiaMidiProcessor:
     def OnTransportsRecord(self, event):
         if self._is_pressed(event):
             debug.log('OnTransportsRecord [down]', 'Dispatched', event=event)
-            transport.record()
             arturia_midi.dispatch_message_to_other_scripts(
                 arturia_midi.INTER_SCRIPT_STATUS_BYTE,
                 arturia_midi.INTER_SCRIPT_DATA1_BTN_DOWN_CMD,
                 event.controlNum)
         else:
             debug.log('OnTransportsRecord [up]', 'Dispatched', event=event)
+            if not self._is_pad_recording:
+                transport.record()
             arturia_midi.dispatch_message_to_other_scripts(
                 arturia_midi.INTER_SCRIPT_STATUS_BYTE,
                 arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD,

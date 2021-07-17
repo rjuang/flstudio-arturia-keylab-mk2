@@ -18,7 +18,6 @@ class VisualMetronome:
         self._beat_count = 0
         self._bar_count = -1
         # Also turn off all lights
-        self._lights.SetPadLights(ArturiaLights.ZeroMatrix())
         self._lights.SetLights({
             ArturiaLights.ID_TRANSPORTS_REWIND: ArturiaLights.LED_OFF,
             ArturiaLights.ID_TRANSPORTS_FORWARD: ArturiaLights.LED_OFF,

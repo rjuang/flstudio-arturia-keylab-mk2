@@ -88,7 +88,7 @@ def BlinkLight(note):
         led_id = note - MIDI_DRUM_PAD_DATA1_MIN + ArturiaLights.MATRIX_IDS_PAD[0][0]
         _pad_recording_led = not _pad_recording_led
         _lights.SetLights({led_id: ArturiaLights.AsOnOffByte(_pad_recording_led)})
-        _pad_recording_task = _scheduler.ScheduleTask(lambda: BlinkLight(note), delay=1000)
+        _pad_recording_task = _scheduler.ScheduleTask(lambda: BlinkLight(note), delay=500)
 
 
 def OnIdle():

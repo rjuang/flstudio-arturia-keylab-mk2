@@ -2,6 +2,7 @@ import arturia_midi
 from arturia_midi import send_to_device
 
 import device
+import time
 import utils
 
 ESSENTIAL_KEYBOARD = 'mkII' not in device.getName()
@@ -15,9 +16,6 @@ class ArturiaLights:
     LED_OFF = 0
 
     MISSING = 0
-
-    # Maximum command byte length
-    #MAX_CMD_BYTE_LEN = 32
 
     # IDs for all of the buttons with lights.
     ID_OCTAVE_MINUS = 16
@@ -137,6 +135,9 @@ class ArturiaLights:
             send_fn = send_to_device
         self._send_fn = send_fn
 
+        # Map of last send times
+        self._last_send_ms = {}
+
     @staticmethod
     def AsOnOffByte(is_on):
         """Converts a boolean to the corresponding on/off to use in the method calls of this class."""
@@ -203,7 +204,7 @@ class ArturiaLights:
         for r in range(num_rows):
             for c in range(num_cols):
                 led_map[ArturiaLights.MATRIX_IDS_PAD[r][c]] = matrix_values[r][c]
-            self.SetLights(led_map, rgb=rgb)
+        self.SetLights(led_map, rgb=rgb)
 
     def SetBankLights(self, array_values, rgb=False):
         """ Set the bank lights given an array of color values to set the bank lights with.
@@ -218,25 +219,22 @@ class ArturiaLights:
 
     def SetLights(self, led_mapping, rgb=False):
         """ Given a map of LED ids to color value, construct and send a command with all the led mapping. """
-        data = bytes([])
+        time_ms = time.monotonic() * 1000
         for led_id, led_value in led_mapping.items():
             if led_id == ArturiaLights.MISSING:
                 # Do not toggle/set lights that are missing
                 continue
-            if rgb:
-                #if len(data) >= ArturiaLights.MAX_CMD_BYTE_LEN:
-                #    self._send_fn(data)
-                #    data = bytes([])
-                r, g, b = ArturiaLights.int2rgb(led_value)
-                if data:
-                    # Need to prefix with SYSEX footer and header
-                    data += bytes(arturia_midi.SYSEX_FOOTER)
-                    data += bytes(arturia_midi.SYSEX_HEADER)
-                data += ArturiaLights.SET_RGB_LIGHT_COMMAND + bytes([led_id, r, g, b])
-            else:
-                data += bytes([led_id, led_value])
+            if led_id not in self._last_send_ms:
+                self._last_send_ms[led_id] = 0
 
-        if rgb:
-            self._send_fn(data)
-        else:
-            self._send_fn(ArturiaLights.SET_MONOCHROME_LIGHT_COMMAND + data)
+            if time_ms - self._last_send_ms[led_id] < 33:
+                # Drop value
+                continue
+            self._last_send_ms[led_id] = time_ms
+            if rgb:
+                r, g, b = ArturiaLights.int2rgb(led_value)
+                self._send_fn(ArturiaLights.SET_RGB_LIGHT_COMMAND + bytes([led_id, r, g, b]))
+            else:
+                self._send_fn(ArturiaLights.SET_MONOCHROME_LIGHT_COMMAND + bytes([led_id, led_value]))
+            # Need to intentionally sleep to allow time for keyboard to process command sent.
+            time.sleep(0.0001)

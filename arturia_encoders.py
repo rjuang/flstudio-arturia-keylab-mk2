@@ -273,9 +273,7 @@ class ArturiaInputControls:
         pass
 
     def Refresh(self):
-        # Don't update lights if recording
-        if not transport.isRecording() and not transport.isPlaying():
-            self._update_lights()
+        self._update_lights()
 
     def _display_hint(self, hint_title, hint_value):
         if config.HINT_DISPLAY_ALL_CAPS:
@@ -330,32 +328,31 @@ class ArturiaInputControls:
             channel_idx = channels.selectedChannel()
             selected_idx = channel_idx - (self._current_index_mixer * 8)
 
-            if config.ENABLE_COLORIZE_BANK_LIGHTS:
-                if arturia_leds.ESSENTIAL_KEYBOARD:
-                    selected_color = ArturiaLights.fadedColor(channels.getChannelColor(channel_idx))
-                    pad_values = ArturiaLights.ZeroMatrix(0)
-                    for i in range(8):
-                        c = i % 4
-                        r = int(i / 4)
-                        pad_values[r][c] = selected_color
-                    self._lights.SetPadLights(pad_values, rgb=True)
-                else:
+            # Bank lights
+            if not arturia_leds.ESSENTIAL_KEYBOARD:
+                if config.ENABLE_COLORIZE_BANK_LIGHTS:
                     if 0 <= selected_idx < 8:
                         values[selected_idx] = ArturiaLights.fullColor(channels.getChannelColor(channel_idx))
                     self._lights.SetBankLights(values, rgb=True)
-            else:
-                if 0 <= selected_idx < 8:
-                    values[selected_idx] = ArturiaLights.LED_ON
-                self._lights.SetBankLights(values, rgb=False)
+                else:
+                    if 0 <= selected_idx < 8:
+                        values[selected_idx] = ArturiaLights.LED_ON
+                    self._lights.SetBankLights(values, rgb=False)
+
+            should_color_pads = ((arturia_leds.ESSENTIAL_KEYBOARD and config.ENABLE_COLORIZE_BANK_LIGHTS) or
+                                 (not arturia_leds.ESSENTIAL_KEYBOARD and config.ENABLE_MK2_COLORIZE_PAD_LIGHTS))
+
+            if should_color_pads:
+                selected_color = ArturiaLights.fadedColor(channels.getChannelColor(channel_idx))
+                pad_values = ArturiaLights.ZeroMatrix(zero=selected_color)
+                self._lights.SetPadLights(pad_values, rgb=True)
 
     def _select_one_channel(self, index):
         if index >= channels.channelCount() or index < 0:
             return
-
         if SCRIPT_VERSION >= 8:
             channels.selectOneChannel(index)
         else:
             channels.deselectAll()
             channels.selectChannel(index, 1)
-        self._update_lights()
 
