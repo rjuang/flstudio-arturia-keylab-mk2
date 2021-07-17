@@ -1,4 +1,4 @@
-# MIDI Script for Arturia Keylab 49/61/88 mkII
+# MIDI Script for Arturia Keylab 49/61/88 (Essential or mkII)
 
 ## Overview
 The goal of this MIDI Script is to make Arturia Keylab mkII more friendlier to use with FL Studio.
