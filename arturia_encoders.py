@@ -119,6 +119,11 @@ class ArturiaInputControls:
         self._lights = lights
         self._mixer_knobs_panning = True
         self._current_mode = ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW
+
+        if config.SLIDERS_FIRST_CONTROL_PLUGINS:
+            # Set the initial mode to plugins if requested.
+            self._current_mode = ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS
+
         self._plugin_knob_map = {}
         self._plugin_toggle_map = {}
 

@@ -21,3 +21,6 @@ HINT_DISPLAY_ALL_CAPS = False
 
 # Set to True to enable color bank lights. On Essential keyboards, the pad colors are set to the active channel color.
 ENABLE_COLORIZE_BANK_LIGHTS = True
+
+# If True, then sliders initially control plugin. If False, sliders initially control mixer tracks.
+SLIDERS_FIRST_CONTROL_PLUGINS = False
