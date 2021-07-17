@@ -5,7 +5,9 @@ import channels
 import config
 import device
 
+import arturia_leds
 import arturia_midi
+
 from arturia_leds import ArturiaLights
 from arturia_scheduler import Scheduler
 from arturia_recorder import Recorder
@@ -99,6 +101,9 @@ def OnMidiMsg(event):
     global _drop_note, _buttons_held, _recorder
     note = event.data1
     log_msg = True
+    should_color_pads = ((not arturia_leds.ESSENTIAL_KEYBOARD and config.ENABLE_MK2_COLORIZE_PAD_LIGHTS) or
+                         (arturia_leds.ESSENTIAL_KEYBOARD and config.ENABLE_COLORIZE_BANK_LIGHTS))
+
     if (event.status == MIDI_DRUM_PAD_STATUS_ON and _drop_note != event.data1) or event.status == 153:
         if MIDI_DRUM_PAD_DATA1_MIN <= note <= MIDI_DRUM_PAD_DATA1_MAX:
             # Make sure to trigger short press event on the event down so as to avoid delay.
@@ -112,6 +117,12 @@ def OnMidiMsg(event):
                 OnLongPressDrumPad(note)
             else:
                 OnShortPressDrumPad(event)
+                if should_color_pads:
+                    channel_idx = channels.selectedChannel()
+                    color_val = ArturiaLights.fullColor(channels.getChannelColor(channel_idx))
+                    led_id = note - MIDI_DRUM_PAD_DATA1_MIN + ArturiaLights.MATRIX_IDS_PAD[0][0]
+                    _lights.SetLights({led_id: color_val}, rgb=True)
+
     elif event.status == MIDI_DRUM_PAD_STATUS_OFF:
         event.handled = True
         if MIDI_DRUM_PAD_DATA1_MIN <= event.data1 <= MIDI_DRUM_PAD_DATA1_MAX:
@@ -119,10 +130,17 @@ def OnMidiMsg(event):
                 _drop_note = None
             else:
                 OnShortPressDrumPad(event)
+
                 if event.data1 in _longpress_status:
                     if _scheduler.CancelTask(_longpress_status[event.data1]):
                         log('midi', 'Long press canceled for %s' % str(event.data1))
                     del _longpress_status[event.data1]
+
+            if should_color_pads:
+                channel_idx = channels.selectedChannel()
+                color_val = ArturiaLights.fadedColor(channels.getChannelColor(channel_idx))
+                led_id = note - MIDI_DRUM_PAD_DATA1_MIN + ArturiaLights.MATRIX_IDS_PAD[0][0]
+                _lights.SetLights({led_id: color_val}, rgb=True)
 
     elif 128 <= event.status <= 159:  # Midi note on
         _recorder.OnMidiNote(event)
