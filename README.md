@@ -3,7 +3,7 @@
 ## Overview
 The goal of this MIDI Script is to make Arturia Keylab (mkII or Essential) more friendlier to use with FL Studio. The script was recently ported to work with Essential keyboards (so it is safe to ignore the mkII naming).
 
-## Demo (updated video, some changes to default start since recording)
+## Really old demo (refer to the feature videos below for updated results)
 [![](http://img.youtube.com/vi/Ts2SnW9r2fc/0.jpg)](http://www.youtube.com/watch?v=Ts2SnW9r2fc "Old Demo of Script")
 
 Refer to this [playlist](https://youtube.com/playlist?list=PLet-RTUimaMTyzOR9OvTb7-DQWe5RmWY8) for the latest content covering different features of the midiscript functionality in shorter videos.
