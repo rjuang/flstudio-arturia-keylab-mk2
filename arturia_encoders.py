@@ -314,6 +314,9 @@ class ArturiaInputControls:
             ArturiaLights.ID_BANK_PREVIOUS: ArturiaLights.AsOnOffByte(is_mixer_mode),
         })
 
+        channel_idx = channels.selectedChannel()
+        selected_idx = channel_idx - (self._current_index_mixer * 8)
+
         if is_plugin_mode:
             values = [ArturiaLights.rgb2int(0x7F, 0, 0) if v else 0 for v in self._get_current_toggle_values()]
             self._lights.SetBankLights(values, rgb=True)
@@ -324,9 +327,6 @@ class ArturiaInputControls:
                     idx = (self._current_index_mixer * 8) + i
                     if idx < channels.channelCount():
                         values[i] = ArturiaLights.fadedColor(channels.getChannelColor(idx))
-
-            channel_idx = channels.selectedChannel()
-            selected_idx = channel_idx - (self._current_index_mixer * 8)
 
             # Bank lights
             if not arturia_leds.ESSENTIAL_KEYBOARD:
@@ -339,13 +339,14 @@ class ArturiaInputControls:
                         values[selected_idx] = ArturiaLights.LED_ON
                     self._lights.SetBankLights(values, rgb=False)
 
-            should_color_pads = ((arturia_leds.ESSENTIAL_KEYBOARD and config.ENABLE_COLORIZE_BANK_LIGHTS) or
-                                 (not arturia_leds.ESSENTIAL_KEYBOARD and config.ENABLE_MK2_COLORIZE_PAD_LIGHTS))
+        # Pad lights
+        should_color_pads = ((arturia_leds.ESSENTIAL_KEYBOARD and config.ENABLE_COLORIZE_BANK_LIGHTS) or
+                             (not arturia_leds.ESSENTIAL_KEYBOARD and config.ENABLE_MK2_COLORIZE_PAD_LIGHTS))
 
-            if should_color_pads:
-                selected_color = ArturiaLights.fadedColor(channels.getChannelColor(channel_idx))
-                pad_values = ArturiaLights.ZeroMatrix(zero=selected_color)
-                self._lights.SetPadLights(pad_values, rgb=True)
+        if should_color_pads:
+            selected_color = ArturiaLights.fadedColor(channels.getChannelColor(channel_idx))
+            pad_values = ArturiaLights.ZeroMatrix(zero=selected_color)
+            self._lights.SetPadLights(pad_values, rgb=True)
 
     def _select_one_channel(self, index):
         if index >= channels.channelCount() or index < 0:
