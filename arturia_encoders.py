@@ -126,6 +126,8 @@ class ArturiaInputControls:
 
         self._plugin_knob_map = {}
         self._plugin_toggle_map = {}
+        # Arturia keyboards only have 9 sliders
+        self._mixer_slider_initial_values = [-1]*9
 
         self._last_hint_time_ms = 0
 
@@ -136,6 +138,7 @@ class ArturiaInputControls:
         self._current_mode = (self._current_mode + 1) % len(ArturiaInputControls.MODE_NAMES)
         self._display_hint('Controlling', ArturiaInputControls.MODE_NAMES[self._current_mode])
         self._update_lights()
+        self._reset_sliders_pickup_status()
 
     def ToggleKnobMode(self):
         if self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW:
@@ -156,6 +159,7 @@ class ArturiaInputControls:
             self._current_index_plugin = (self._current_index_plugin + 1) % ArturiaInputControls.MAX_NUM_PAGES
             self._display_plugin_update_hint()
         self._update_lights()
+        self._reset_sliders_pickup_status()
 
     def PrevControlsPage(self):
         if self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW:
@@ -165,6 +169,7 @@ class ArturiaInputControls:
             self._current_index_plugin = (self._current_index_plugin - 1) % ArturiaInputControls.MAX_NUM_PAGES
             self._display_plugin_update_hint()
         self._update_lights()
+        self._reset_sliders_pickup_status()
 
     def _display_mixer_update_hint(self):
         begin_track = self._current_index_mixer * 8 + 1
@@ -181,15 +186,39 @@ class ArturiaInputControls:
             self._process_plugin_knob_event(knob_index, delta)
         return self
 
+    def _is_slider_picked_up(self, track_index, value):
+        if not config.ENABLE_MIXER_SLIDERS_PICKUP_MODE:
+            return True
+        slider_index = 8
+        if track_index > 0:
+            slider_index = (track_index - 1) % 8
+        initial_value = self._mixer_slider_initial_values[slider_index]
+        if initial_value < 0:
+            self._mixer_slider_initial_values[slider_index] = value
+            return value == int(127.0 * mixer.getTrackVolume(track_index))
+
+        daw_value = int(127.0 * mixer.getTrackVolume(track_index))
+        if (initial_value <= daw_value <= value) or (value <= daw_value <= initial_value):
+            self._mixer_slider_initial_values[slider_index] = 256
+        return self._mixer_slider_initial_values[slider_index] > 255
+
+    def _reset_sliders_pickup_status(self):
+        self._mixer_slider_initial_values = [-1]*9
+
     def _process_sliders_track_volume(self, slider_index, value):
         track_index = (self._current_index_mixer * 8 + slider_index) + 1
         track_name = 'Track  %d' % track_index
         if slider_index == 8:
             track_index = 0
             track_name = 'Master Track'
-        self._set_mixer_param(midi.REC_Mixer_Vol, value, track_index=track_index)
-        volume = int((value / 127.0) * 100.0)
-        self._display_hint(track_name, 'Volume: %d%%' % volume)
+
+        if self._is_slider_picked_up(track_index, value):
+            self._set_mixer_param(midi.REC_Mixer_Vol, value, track_index=track_index)
+            volume = int((value / 127.0) * 100.0)
+            self._display_hint(track_name, 'Volume: %d%%' % volume)
+        else:
+            volume = int(mixer.getTrackVolume(track_index) * 100.0)
+            self._display_hint(track_name, 'Volume: %d%% LOCK' % volume)
 
     def _process_plugin_slider_event(self, index, value):
         status = 176 + self._current_index_plugin

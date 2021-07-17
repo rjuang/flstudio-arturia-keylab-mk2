@@ -24,3 +24,8 @@ ENABLE_COLORIZE_BANK_LIGHTS = True
 
 # If True, then sliders initially control plugin. If False, sliders initially control mixer tracks.
 SLIDERS_FIRST_CONTROL_PLUGINS = False
+
+# If True, the sliders are initially ignored until they cross the initial value in the mixer. For example, if mixer
+# for track 1 is set to 100% and mixer is at 50%, then mixer sliders won't do anything until they cross or match the
+# value of the mixer.
+ENABLE_MIXER_SLIDERS_PICKUP_MODE = False
