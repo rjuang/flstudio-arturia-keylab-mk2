@@ -433,6 +433,7 @@ class ArturiaMidiProcessor:
             playlist.soloTrack(self._current_playlist_track_index)
             status = playlist.isTrackSolo(self._current_playlist_track_index)
             self._display_playlist_track_op_hint("Solo Playlist: %d" % status)
+            self._playlist_track_updated = True
         else:
             channels.soloChannel(channels.selectedChannel())
 
@@ -442,6 +443,7 @@ class ArturiaMidiProcessor:
             playlist.muteTrack(self._current_playlist_track_index)
             status = playlist.isTrackMuted(self._current_playlist_track_index)
             self._display_playlist_track_op_hint("Mute Playlist: %d" % status)
+            self._playlist_track_updated = True
         else:
             channels.muteChannel(channels.selectedChannel())
 
