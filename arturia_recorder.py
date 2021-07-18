@@ -13,6 +13,7 @@ class Recorder:
 
         # List of tuples containing (time, channel note, velocity)
         self._recording = None
+        self._stop_requested = False
         self._savedata = savedata
         self._looping = set()
 
@@ -57,8 +58,13 @@ class Recorder:
         if check_looping and key not in self._looping:
             return
 
+        if self._stop_requested:
+            return
+
         timestamp_base = values[0]
         for i in range(0, len(values), 4):
+            if self._stop_requested:
+                return
             timestamp, channel, note, velocity = values[i:i+4]
             delay_ms = timestamp - timestamp_base
             if delay_ms <= 0:
@@ -77,8 +83,14 @@ class Recorder:
             self._scheduler.ScheduleTask(lambda: self._SchedulePlay(key, values, check_looping=True),
                                          delay=delay_ms + beat_interval_ms)
 
+    def StopPlaying(self):
+        log('recorder', 'Clear all loop patterns.')
+        self._looping.clear()
+        self._stop_requested = True
+
     def Play(self, key, loop=False):
         log('recorder', 'Playing drum pattern for %s. Loop=%s' % (key, loop))
+        self._stop_requested = False
         # Make sure all channels are selected
         if key in self._looping:
             # Stop playing loop

@@ -148,7 +148,10 @@ def OnMidiMsg(event):
         if event.data1 == arturia_midi.INTER_SCRIPT_DATA1_BTN_DOWN_CMD:
             _buttons_held.add(event.data2)
             if event.data2 == STOP_BUTTON_ID:
-                _recorder.StopRecording()
+                if _recorder.IsRecording():
+                    _recorder.StopRecording()
+                else:
+                    _recorder.StopPlaying()
         elif event.data1 == arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD and event.data2 in _buttons_held:
             _buttons_held.remove(event.data2)
 
