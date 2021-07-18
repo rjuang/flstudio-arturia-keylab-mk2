@@ -2,8 +2,9 @@ from arturia_display import ArturiaDisplay
 
 
 class ArturiaPagedDisplay:
-    def __init__(self, display):
+    def __init__(self, display, scheduler):
         self._display = display
+        self._scheduler = scheduler
         # Mapping of page name string to line 1 string provider function for that page.
         self._line1 = {}
         # Mapping of page name string to line 2 string provider function for that page.
@@ -39,6 +40,7 @@ class ArturiaPagedDisplay:
             reset_scroll = page_name != self._ephemeral_page
             self._ephemeral_page = page_name
             self._page_expiration_time_ms = ArturiaDisplay.time_ms() + expires
+            self._scheduler.ScheduleTask(self.Refresh, delay=expires)
         else:
             self._active_page = page_name
         self._update_display(reset_scroll)

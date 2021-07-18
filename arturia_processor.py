@@ -41,6 +41,9 @@ class ArturiaMidiProcessor:
         def ignore_release(event): return self._is_pressed(event)
 
         self._controller = controller
+        self._current_playlist_track_index = 1
+        self._pattern_mode_down = False
+        self._playlist_track_updated = False
 
         self._midi_id_dispatcher = (
             MidiEventDispatcher(by_midi_id)
@@ -57,7 +60,7 @@ class ArturiaMidiProcessor:
             .SetHandler(95, self.OnTransportsRecord)
             .SetHandler(86, self.OnTransportsLoop, ignore_release)
 
-            .SetHandler(80, self.OnGlobalSave, ignore_release)
+            .SetHandler(80, self.OnGlobalSave)
             .SetHandler(87, self.OnGlobalIn, ignore_release)
             .SetHandler(88, self.OnGlobalOut, ignore_release)
             .SetHandler(89, self.OnGlobalMetro, ignore_release)
@@ -277,7 +280,10 @@ class ArturiaMidiProcessor:
     def OnNavigationKnobTurned(self, event):
         delta = self._get_knob_delta(event)
         debug.log('OnNavigationKnob', 'Delta = %d' % delta, event=event)
-        self._navigation.UpdateValue(delta)
+        if self._pattern_mode_down:
+            self._change_playlist_track(delta)
+        else:
+            self._navigation.UpdateValue(delta)
 
     _KNOB_MAPPING = {
         0: midi.REC_Chan_Plugin_First + 18,
@@ -376,7 +382,13 @@ class ArturiaMidiProcessor:
 
     def OnGlobalSave(self, event):
         debug.log('OnGlobalSave', 'Dispatched', event=event)
-        transport.setLoopMode()
+        if self._is_pressed(event):
+            self._pattern_mode_down = True
+            self._playlist_track_updated = False
+        else:
+            self._pattern_mode_down = False
+            if not self._playlist_track_updated:
+                transport.setLoopMode()
 
     def OnGlobalIn(self, event):
         if arturia_leds.ESSENTIAL_KEYBOARD:
@@ -417,11 +429,21 @@ class ArturiaMidiProcessor:
 
     def OnTrackSolo(self, event):
         debug.log('OnTrackSolo', 'Dispatched', event=event)
-        channels.soloChannel(channels.selectedChannel())
+        if self._pattern_mode_down:
+            playlist.soloTrack(self._current_playlist_track_index)
+            status = playlist.isTrackSolo(self._current_playlist_track_index)
+            self._display_playlist_track_op_hint("Solo Playlist: %d" % status)
+        else:
+            channels.soloChannel(channels.selectedChannel())
 
     def OnTrackMute(self, event):
         debug.log('OnTrackMute', 'Dispatched', event=event)
-        channels.muteChannel(channels.selectedChannel())
+        if self._pattern_mode_down:
+            playlist.muteTrack(self._current_playlist_track_index)
+            status = playlist.isTrackMuted(self._current_playlist_track_index)
+            self._display_playlist_track_op_hint("Mute Playlist: %d" % status)
+        else:
+            channels.muteChannel(channels.selectedChannel())
 
     def _detect_long_press(self, event, short_fn, long_fn):
         control_id = event.controlNum
@@ -471,21 +493,62 @@ class ArturiaMidiProcessor:
         debug.log('OnTrackRecord Long', 'Dispatched', event=event)
         self._clone_active_pattern()
 
+    def _is_pattern_mode(self):
+        return transport.getLoopMode() == 0
+
+    def _display_playlist_track_hint(self):
+        self._display_playlist_track_op_hint('Playlist Track')
+
+    def _display_playlist_track_op_hint(self, title):
+        track_name = playlist.getTrackName(self._current_playlist_track_index)
+        if track_name.startswith('* '):
+            track_name = track_name[2:]
+        self._display_hint(title, '%d: %s' % (self._current_playlist_track_index, track_name))
+
+    def _deselect_playlist_track(self, track_index):
+        name = playlist.getTrackName(track_index)
+        if name.startswith('* '):
+            playlist.setTrackName(track_index, name[2:])
+
+    def _select_playlist_track(self, track_index):
+        name = playlist.getTrackName(track_index)
+        if name.startswith('* '):
+            return
+        playlist.setTrackName(track_index, '* ' + name)
+
+    def _change_playlist_track(self, delta):
+        # Adjust track number.
+        next = self._current_playlist_track_index + delta
+        if 0 < next < playlist.trackCount():
+            self._deselect_playlist_track(self._current_playlist_track_index)
+            self._select_playlist_track(next)
+            self._current_playlist_track_index = next
+        self._display_playlist_track_hint()
+        self._playlist_track_updated = True
+
     def OnTrackRead(self, event):
         debug.log('OnTrackRead', 'Dispatched', event=event)
         # Move to previous pattern (move up pattern list)
-        prev = patterns.patternNumber() - 1
-        if prev <= 0:
-            return
-        patterns.jumpToPattern(prev)
+        if not self._pattern_mode_down:
+            prev = patterns.patternNumber() - 1
+            if prev <= 0:
+                return
+            patterns.jumpToPattern(prev)
+        else:
+            # Adjust track number.
+            self._change_playlist_track(-1)
 
     def OnTrackWrite(self, event):
         debug.log('OnTrackWrite', 'Dispatched', event=event)
         # Move to next pattern (move down pattern list)
-        next = patterns.patternNumber() + 1
-        if next > patterns.patternCount():
-            return
-        patterns.jumpToPattern(next)
+        if not self._pattern_mode_down:
+            next = patterns.patternNumber() + 1
+            if next > patterns.patternCount():
+                return
+            patterns.jumpToPattern(next)
+        else:
+            # Adjust track number.
+            self._change_playlist_track(1)
 
     def OnNavigationLeft(self, event):
         self._detect_long_press(event, self.OnNavigationLeftShortPress, self.OnNavigationLeftLongPress)

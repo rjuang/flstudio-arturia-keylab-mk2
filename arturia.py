@@ -27,7 +27,7 @@ class ArturiaController:
     def __init__(self):
         self._scheduler = Scheduler()
         self._display = ArturiaDisplay(self._scheduler)
-        self._paged_display = ArturiaPagedDisplay(self._display)
+        self._paged_display = ArturiaPagedDisplay(self._display, self._scheduler)
         self._lights = ArturiaLights()
         self._metronome = VisualMetronome(self._lights)
         self._encoders = ArturiaInputControls(self._paged_display, self._lights)
