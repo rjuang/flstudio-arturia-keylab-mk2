@@ -54,9 +54,6 @@ class ArturiaController:
     def Sync(self, flags):
         """ Syncs up all visual indicators on keyboard with changes from FL Studio. """
         # Update buttons
-        # Bound active_index between [0, numChannels - 1]
-        active_index = max(0, min(channels.channelCount() - 1, channels.selectedChannel()))
-
         if flags & midi.HW_Dirty_LEDs:
             led_map = {
                 ArturiaLights.ID_TRANSPORTS_RECORD: ArturiaLights.AsOnOffByte(transport.isRecording()),
@@ -64,8 +61,10 @@ class ArturiaController:
                 ArturiaLights.ID_GLOBAL_METRO: ArturiaLights.AsOnOffByte(ui.isMetronomeEnabled()),
                 ArturiaLights.ID_GLOBAL_SAVE: ArturiaLights.AsOnOffByte(transport.getLoopMode() == 1),
                 ArturiaLights.ID_GLOBAL_UNDO: ArturiaLights.AsOnOffByte(general.getUndoHistoryLast() == 0),
-                ArturiaLights.ID_TRACK_SOLO: ArturiaLights.AsOnOffByte(channels.isChannelSolo(active_index)),
-                ArturiaLights.ID_TRACK_MUTE: ArturiaLights.AsOnOffByte(channels.isChannelMuted(active_index)),
+                ArturiaLights.ID_TRACK_SOLO: ArturiaLights.AsOnOffByte(
+                    channels.isChannelSolo(channels.selectedChannel())),
+                ArturiaLights.ID_TRACK_MUTE: ArturiaLights.AsOnOffByte(
+                    channels.isChannelMuted(channels.selectedChannel())),
                 ArturiaLights.ID_TRANSPORTS_STOP: ArturiaLights.AsOnOffByte(not transport.isPlaying()),
                 ArturiaLights.ID_TRANSPORTS_PLAY: ArturiaLights.AsOnOffByte(transport.getSongPos() > 0),
                 ArturiaLights.ID_GLOBAL_OUT: ArturiaLights.AsOnOffByte(
@@ -79,13 +78,13 @@ class ArturiaController:
             self._encoders.Refresh()
 
         # Update display
-        channel_name = channels.getChannelName(active_index)
+        channel_name = channels.getChannelName(channels.selectedChannel())
         pattern_number = patterns.patternNumber()
         pattern_name = patterns.getPatternName(pattern_number)
 
         self._paged_display.SetPageLines(
             'main',
-            line1='[%d:%d] %s' % (active_index + 1, pattern_number, channel_name),
+            line1='[%d:%d] %s' % (channels.selectedChannel() + 1, pattern_number, channel_name),
             line2='%s' % pattern_name)
 
     def _TurnOffOctaveLights(self):
