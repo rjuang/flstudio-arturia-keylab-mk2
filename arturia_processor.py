@@ -111,9 +111,16 @@ class ArturiaMidiProcessor:
             r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
             return ' %3d  %3d [%3d]' % (r, g, b)
 
+        def get_playlist_track():
+            name = playlist.getTrackName(self._current_playlist_track_index)
+            if name.startswith('* '):
+                name = name[2:]
+            return '%d: [%s]' % (self._current_playlist_track_index, name)
+
         def get_target_mixer_track():
             track = channels.getTargetFxTrack(channels.selectedChannel())
             return '%d' % track if track > 0 else 'MASTER'
+
 
         self._navigation = (
             NavigationMode(self._controller.paged_display())
@@ -133,6 +140,7 @@ class ArturiaMidiProcessor:
             .AddMode('Blue Color',  self.OnUpdateColorBlue, get_color_blue_line)
             .AddMode('Plugin Preset', self.OnUpdatePlugin, get_plugin_line)
             .AddMode('Pattern', self.OnUpdatePattern, get_pattern_line)
+            .AddMode('Playlist Track', self.OnUpdatePlaylistTrack, get_playlist_track)
             .AddMode('Target Mix Track', self.OnUpdateTargetMixerTrack, get_target_mixer_track)
          )
         self._update_focus_time_ms = 0
@@ -184,6 +192,8 @@ class ArturiaMidiProcessor:
     def OnUpdatePattern(self, delta):
         index = self.clip(1, patterns.patternCount(), patterns.patternNumber() + delta)
         patterns.jumpToPattern(index)
+        name = patterns.getPatternName(index)
+        self._select_playlist_track_named(name)
 
     def OnUpdateChannel(self, delta):
         index = self.clip(0, channels.channelCount() - 1, channels.selectedChannel() + delta)
@@ -233,6 +243,10 @@ class ArturiaMidiProcessor:
             if channels.getTargetFxTrack(i) == track:
                 return i
         return -1
+
+    def OnUpdatePlaylistTrack(self, delta):
+        track = max(1, min(playlist.trackCount(), self._current_playlist_track_index + delta))
+        self._select_playlist_track(track)
 
     def OnUpdateTargetMixerTrack(self, delta):
         max_track_idx = mixer.trackCount() - 2   # One of the track is a control track
@@ -507,24 +521,43 @@ class ArturiaMidiProcessor:
             track_name = track_name[2:]
         self._display_hint(title, '%d: %s' % (self._current_playlist_track_index, track_name))
 
-    def _deselect_playlist_track(self, track_index):
-        name = playlist.getTrackName(track_index)
-        if name.startswith('* '):
-            playlist.setTrackName(track_index, name[2:])
+    def _deselect_all_playlist_track(self):
+        for i in range(1, playlist.trackCount()):
+            track_name = playlist.getTrackName(i)
+            if track_name.startswith('* '):
+                playlist.setTrackName(i, track_name[2:])
 
     def _select_playlist_track(self, track_index):
         name = playlist.getTrackName(track_index)
+        self._current_playlist_track_index = track_index
         if name.startswith('* '):
             return
+
+        self._deselect_all_playlist_track()
+        self._select_pattern_named(name)
         playlist.setTrackName(track_index, '* ' + name)
+
+    def _select_pattern_named(self, name):
+        for i in range(1, patterns.patternCount() + 1):
+            if patterns.getPatternName(i) == name:
+                patterns.jumpToPattern(i)
+                return
+
+    def _select_playlist_track_named(self, name):
+        for i in range(1, playlist.trackCount()):
+            track_name = playlist.getTrackName(i)
+            if track_name.startswith('* '):
+                track_name = track_name[2:]
+
+            if track_name == name:
+                self._select_playlist_track(i)
+                return
 
     def _change_playlist_track(self, delta):
         # Adjust track number.
         next = self._current_playlist_track_index + delta
-        if 0 < next < playlist.trackCount():
-            self._deselect_playlist_track(self._current_playlist_track_index)
+        if 0 < next <= playlist.trackCount():
             self._select_playlist_track(next)
-            self._current_playlist_track_index = next
         self._display_playlist_track_hint()
         self._playlist_track_updated = True
 
