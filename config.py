@@ -36,3 +36,7 @@ SLIDERS_FIRST_CONTROL_PLUGINS = False
 # for track 1 is set to 100% and mixer is at 50%, then mixer sliders won't do anything until they cross or match the
 # value of the mixer.
 ENABLE_MIXER_SLIDERS_PICKUP_MODE = False
+
+# If True, changes to the controls also update the FL hint panel when appropriate Useful if you can't visually see the
+# display on keyboard and need feedback from FL Studio (i.e. plugin active but UI hidden).
+ENABLE_CONTROLS_FL_HINTS = True

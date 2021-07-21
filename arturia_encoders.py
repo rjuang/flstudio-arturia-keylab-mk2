@@ -136,7 +136,8 @@ class ArturiaInputControls:
 
     def ToggleCurrentMode(self):
         self._current_mode = (self._current_mode + 1) % len(ArturiaInputControls.MODE_NAMES)
-        self._display_hint('Controlling', ArturiaInputControls.MODE_NAMES[self._current_mode])
+        self._display_hint('Controlling', ArturiaInputControls.MODE_NAMES[self._current_mode],
+                           fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
         self._update_lights()
         self._reset_sliders_pickup_status()
 
@@ -144,7 +145,7 @@ class ArturiaInputControls:
         if self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW:
             self._mixer_knobs_panning = not self._mixer_knobs_panning
             mode = 'Panning' if self._mixer_knobs_panning else 'Stereo Sep.'
-            self._display_hint('Knobs Control', mode)
+            self._display_hint('Knobs Control', mode, fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
             self._update_lights()
         else:
             # TODO: Toggle knob mode for Plugin mode.
@@ -174,10 +175,13 @@ class ArturiaInputControls:
     def _display_mixer_update_hint(self):
         begin_track = self._current_index_mixer * 8 + 1
         end_track = (self._current_index_mixer + 1) * 8
-        self._display_hint('Controlling', 'Tracks %d - %d' % (begin_track, end_track))
+        self._display_hint('Controlling',
+                           'Tracks %d - %d' % (begin_track, end_track),
+                           fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
 
     def _display_plugin_update_hint(self):
-        self._display_hint('Setting MIDI Ch', 'To: %2d' % (self._current_index_plugin + 1))
+        self._display_hint('Setting MIDI Ch', 'To: %2d' % (self._current_index_plugin + 1),
+                           fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
 
     def ProcessKnobInput(self, knob_index, delta):
         if self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW:
@@ -228,7 +232,8 @@ class ArturiaInputControls:
         device.forwardMIDICC(message, 2)
         pretty_value = int((value / 127) * 100)
         self._display_hint('Slider %d Ch: %2d' % (index + 1, self._current_index_plugin + 1),
-                           '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2))
+                           '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2),
+                           fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
 
     def _process_plugin_knob_event(self, index, delta):
         status = 176 + self._current_index_plugin
@@ -238,7 +243,8 @@ class ArturiaInputControls:
         device.forwardMIDICC(message, 2)
         pretty_value = int((data2 / 127) * 100)
         self._display_hint('Enc. %d  Ch: %2d' % (index + 1, self._current_index_plugin + 1),
-                           '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2))
+                           '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2),
+                           fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
 
     def _process_knobs_mixer_track(self, knob_index, delta):
         track_index = (self._current_index_mixer * 8 + knob_index) + 1
@@ -253,7 +259,9 @@ class ArturiaInputControls:
         data2 = self._update_toggle_value(self._current_index_plugin, index)
         message = status + (data1 << 8) + (data2 << 16) + (arturia_midi.PLUGIN_PORT_NUM << 24)
         device.forwardMIDICC(message, 2)
-        self._display_hint('Plugin button', '%02X %02X %02X' % (status, data1, data2))
+        self._display_hint('Plugin button',
+                           '%02X %02X %02X' % (status, data1, data2),
+                           fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
         self._update_lights()
 
     def ProcessSliderInput(self, slider_index, value):
@@ -275,7 +283,7 @@ class ArturiaInputControls:
     def Refresh(self):
         self._update_lights()
 
-    def _display_hint(self, hint_title, hint_value):
+    def _display_hint(self, hint_title, hint_value, fl_hint=False):
         if config.HINT_DISPLAY_ALL_CAPS:
             hint_title = hint_title.upper()
             hint_value = hint_value.upper()
@@ -284,6 +292,9 @@ class ArturiaInputControls:
 
         self._paged_display.SetPageLines('hint', line1=hint_title, line2=hint_value)
         current_time_ms = ArturiaDisplay.time_ms()
+
+        if fl_hint:
+            ui.setHintMsg('%s %s' % (hint_title, hint_value))
 
         if current_time_ms > self._last_hint_time_ms + 100:
             self._paged_display.SetActivePage('hint', expires=5000)
