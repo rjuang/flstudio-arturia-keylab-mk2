@@ -5,8 +5,8 @@ class NavigationMode:
         self._modes = []
         self._active_index = 0
 
-    def AddMode(self, name, update_fn, line_fn):
-        self._modes.append((name, update_fn, line_fn))
+    def AddMode(self, name, update_fn, knob_press_fn, line_fn):
+        self._modes.append((name, update_fn, knob_press_fn, line_fn))
         self._paged_display.SetPageLinesProvider(name, line1=lambda: name, line2=line_fn)
         return self
 
@@ -22,10 +22,19 @@ class NavigationMode:
             self._active_index = 0
         self._refresh()
 
+    def GetMode(self):
+        return self._modes[self._active_index][0]
+
     def UpdateValue(self, delta):
         if self._active_index >= len(self._modes):
             return
         self._modes[self._active_index][1](delta)
+        self._refresh()
+
+    def NotifyKnobPressed(self):
+        if self._active_index >= len(self._modes):
+            return
+        self._modes[self._active_index][2]()
         self._refresh()
 
     def _refresh(self):

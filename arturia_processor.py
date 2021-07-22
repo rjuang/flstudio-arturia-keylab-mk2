@@ -121,27 +121,27 @@ class ArturiaMidiProcessor:
             track = channels.getTargetFxTrack(channels.selectedChannel())
             return '%d' % track if track > 0 else 'MASTER'
 
-
         self._navigation = (
             NavigationMode(self._controller.paged_display())
-            .AddMode('Channel', self.OnUpdateChannel, get_channel_line)
-            .AddMode('Volume', self.OnUpdateVolume, get_volume_line)
-            .AddMode('Panning', self.OnUpdatePanning, get_panning_line)
+            .AddMode('Channel', self.OnUpdateChannel, self.OnChannelKnobPress, get_channel_line)
+            .AddMode('Volume', self.OnUpdateVolume, self.OnUnassignedKnobPress, get_volume_line)
+            .AddMode('Panning', self.OnUpdatePanning, self.OnUnassignedKnobPress,  get_panning_line)
         )
 
         if SCRIPT_VERSION >= 8:
-            self._navigation.AddMode('Pitch', self.OnUpdatePitch, get_pitch_line)
+            self._navigation.AddMode('Pitch', self.OnUpdatePitch, self.OnUnassignedKnobPress, get_pitch_line)
 
         (self._navigation
-            .AddMode('Time Marker', self.OnUpdateTimeMarker, get_time_position)
+            .AddMode('Time Marker', self.OnUpdateTimeMarker, self.OnUnassignedKnobPress, get_time_position)
             # TODO: Combine RED/GREEN/BLUE to a single preset
-            .AddMode('Red Color', self.OnUpdateColorRed, get_color_red_line)
-            .AddMode('Green Color', self.OnUpdateColorGreen, get_color_green_line)
-            .AddMode('Blue Color',  self.OnUpdateColorBlue, get_color_blue_line)
-            .AddMode('Plugin Preset', self.OnUpdatePlugin, get_plugin_line)
-            .AddMode('Pattern', self.OnUpdatePattern, get_pattern_line)
-            .AddMode('Playlist Track', self.OnUpdatePlaylistTrack, get_playlist_track)
-            .AddMode('Target Mix Track', self.OnUpdateTargetMixerTrack, get_target_mixer_track)
+            .AddMode('Red Color', self.OnUpdateColorRed, self.OnUnassignedKnobPress, get_color_red_line)
+            .AddMode('Green Color', self.OnUpdateColorGreen, self.OnUnassignedKnobPress, get_color_green_line)
+            .AddMode('Blue Color',  self.OnUpdateColorBlue, self.OnUnassignedKnobPress, get_color_blue_line)
+            .AddMode('Plugin Preset', self.OnUpdatePlugin, self.OnUnassignedKnobPress, get_plugin_line)
+            .AddMode('Pattern', self.OnUpdatePattern, self.OnPatternKnobPress, get_pattern_line)
+            .AddMode('Playlist Track', self.OnUpdatePlaylistTrack, self.OnTrackPlaylistKnobPress, get_playlist_track)
+            .AddMode('Target Mix Track', self.OnUpdateTargetMixerTrack, self.OnMixerTrackKnobPress,
+                     get_target_mixer_track)
          )
         self._update_focus_time_ms = 0
         self._debug_value = 0
@@ -201,6 +201,34 @@ class ArturiaMidiProcessor:
     def OnUpdateChannel(self, delta):
         index = self.clip(0, channels.channelCount() - 1, channels.selectedChannel() + delta)
         self._select_one_channel(index)
+
+    def OnChannelKnobPress(self):
+        if SCRIPT_VERSION < 9:
+            return
+        selectedChannel = channels.selectedChannel()
+        if selectedChannel < 0:
+            return
+        channels.showCSForm(selectedChannel, -1)
+
+    def _toggle_window_visibility(self, window):
+        if ui.getVisible(window):
+            ui.hideWindow(window)
+        else:
+            ui.showWindow(window)
+            ui.setFocused(window)
+
+    def OnPatternKnobPress(self):
+        self._toggle_window_visibility(midi.widPianoRoll)
+
+    def OnTrackPlaylistKnobPress(self):
+        self._toggle_window_visibility(midi.widPlaylist)
+
+    def OnMixerTrackKnobPress(self):
+        self._toggle_window_visibility(midi.widMixer)
+
+    def OnUnassignedKnobPress(self):
+        # TODO
+        self._display_hint('Unassigned', 'Knob press')
 
     def _request_plugin_window_focus(self):
         current_time_ms = ArturiaDisplay.time_ms()
@@ -620,9 +648,7 @@ class ArturiaMidiProcessor:
 
     def OnNavigationKnobPressed(self, event):
         debug.log('OnNavigationKnobPressed', 'Dispatched', event=event)
-        ## DEBUG ONLY ##
-        transport.globalTransport(midi.FPT_F8, midi.FPT_F8)
-        debug.log('DEBUG', 'Trying to show editor for %d' % channels.channelCount())
+        self._navigation.NotifyKnobPressed()
 
     def OnBankNext(self, event):
         self._detect_long_press(event, self.OnBankNextShortPress, self.OnBankNextLongPress)
