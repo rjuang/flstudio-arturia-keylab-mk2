@@ -3,6 +3,7 @@ import device
 import general
 import midi
 import mixer
+import patterns
 import transport
 import ui
 
@@ -367,4 +368,8 @@ class ArturiaInputControls:
         else:
             channels.deselectAll()
             channels.selectChannel(index, 1)
+
+        if config.ENABLE_CONTROLS_FL_HINTS:
+            ui.setHintMsg('[%d:%d] %s' % (channels.selectedChannel() + 1, patterns.patternNumber(),
+                                          channels.getChannelName(channels.selectedChannel())))
 
