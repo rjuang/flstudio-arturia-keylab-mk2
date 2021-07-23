@@ -1,3 +1,5 @@
+import _random
+
 import arrangement
 import channels
 
@@ -44,6 +46,7 @@ class ArturiaMidiProcessor:
         self._current_playlist_track_index = 1
         self._pattern_mode_down = False
         self._playlist_track_updated = False
+        self._random = _random.Random()
 
         self._midi_id_dispatcher = (
             MidiEventDispatcher(by_midi_id)
@@ -124,20 +127,20 @@ class ArturiaMidiProcessor:
         self._navigation = (
             NavigationMode(self._controller.paged_display())
             .AddMode('Channel', self.OnUpdateChannel, self.OnChannelKnobPress, get_channel_line)
-            .AddMode('Volume', self.OnUpdateVolume, self.OnUnassignedKnobPress, get_volume_line)
-            .AddMode('Panning', self.OnUpdatePanning, self.OnUnassignedKnobPress,  get_panning_line)
+            .AddMode('Volume', self.OnUpdateVolume, self.OnVolumeKnobPress, get_volume_line)
+            .AddMode('Panning', self.OnUpdatePanning, self.OnPanningKnobPress,  get_panning_line)
         )
 
         if SCRIPT_VERSION >= 8:
-            self._navigation.AddMode('Pitch', self.OnUpdatePitch, self.OnUnassignedKnobPress, get_pitch_line)
+            self._navigation.AddMode('Pitch', self.OnUpdatePitch, self.OnPitchKnobPress, get_pitch_line)
 
         (self._navigation
             .AddMode('Time Marker', self.OnUpdateTimeMarker, self.OnUnassignedKnobPress, get_time_position)
             # TODO: Combine RED/GREEN/BLUE to a single preset
-            .AddMode('Red Color', self.OnUpdateColorRed, self.OnUnassignedKnobPress, get_color_red_line)
-            .AddMode('Green Color', self.OnUpdateColorGreen, self.OnUnassignedKnobPress, get_color_green_line)
-            .AddMode('Blue Color',  self.OnUpdateColorBlue, self.OnUnassignedKnobPress, get_color_blue_line)
-            .AddMode('Plugin Preset', self.OnUpdatePlugin, self.OnUnassignedKnobPress, get_plugin_line)
+            .AddMode('Red Color', self.OnUpdateColorRed, self.OnColorKnobPress, get_color_red_line)
+            .AddMode('Green Color', self.OnUpdateColorGreen, self.OnColorKnobPress, get_color_green_line)
+            .AddMode('Blue Color',  self.OnUpdateColorBlue, self.OnColorKnobPress, get_color_blue_line)
+            .AddMode('Plugin Preset', self.OnUpdatePlugin, self.OnChannelKnobPress, get_plugin_line)
             .AddMode('Pattern', self.OnUpdatePattern, self.OnPatternKnobPress, get_pattern_line)
             .AddMode('Playlist Track', self.OnUpdatePlaylistTrack, self.OnTrackPlaylistKnobPress, get_playlist_track)
             .AddMode('Target Mix Track', self.OnUpdateTargetMixerTrack, self.OnMixerTrackKnobPress,
@@ -202,13 +205,50 @@ class ArturiaMidiProcessor:
         index = self.clip(0, channels.channelCount() - 1, channels.selectedChannel() + delta)
         self._select_one_channel(index)
 
+    def OnVolumeKnobPress(self):
+        selected = channels.selectedChannel()
+        if selected < 0:
+            return
+        channels.setChannelVolume(selected, 0.78125)
+
+    def OnPanningKnobPress(self):
+        selected = channels.selectedChannel()
+        if selected < 0:
+            return
+        channels.setChannelPan(selected, 0.0)
+
+    def OnPitchKnobPress(self):
+        selected = channels.selectedChannel()
+        if selected < 0:
+            return
+        if SCRIPT_VERSION >= 8:
+            channels.setChannelPitch(selected, 0)
+
+    def OnColorKnobPress(self):
+        selected = channels.selectedChannel()
+        if selected < 0:
+            return
+        rgb = int(self._random.random() * 16777215.0)
+        channels.setChannelColor(selected, rgb)
+        self._controller.encoders().Refresh()
+
     def OnChannelKnobPress(self):
-        if SCRIPT_VERSION < 9:
+        selected = channels.selectedChannel()
+        if selected < 0:
             return
-        selectedChannel = channels.selectedChannel()
-        if selectedChannel < 0:
-            return
-        channels.showCSForm(selectedChannel, -1)
+
+        if SCRIPT_VERSION > 9:
+            channels.showCSForm(selected, -1)
+        elif SCRIPT_VERSION >= 8:
+            if plugins.isValid(selected):
+                # If valid plugin, then toggle
+                channels.showEditor(selected)
+            else:
+                # For audio, no ability to close window settings
+                channels.showCSForm(selected)
+        else:
+            # Older versions, don't bother with toggle since no support for determining whether plugin or audio
+            channels.showCSForm(selected)
 
     def _toggle_window_visibility(self, window):
         if ui.getVisible(window):
@@ -257,16 +297,19 @@ class ArturiaMidiProcessor:
         r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
         r = self.clip(0, 255, r + delta)
         channels.setChannelColor(channels.selectedChannel(), utils.RGBToColor(r, g, b))
+        self._controller.encoders().Refresh()
 
     def OnUpdateColorGreen(self, delta):
         r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
         g = self.clip(0, 255, g + delta)
         channels.setChannelColor(channels.selectedChannel(), utils.RGBToColor(r, g, b))
+        self._controller.encoders().Refresh()
 
     def OnUpdateColorBlue(self, delta):
         r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
         b = self.clip(0, 255, b + delta)
         channels.setChannelColor(channels.selectedChannel(), utils.RGBToColor(r, g, b))
+        self._controller.encoders().Refresh()
 
     def _channel_with_route_to_mixer_track(self, track):
         max_channel = channels.channelCount()
