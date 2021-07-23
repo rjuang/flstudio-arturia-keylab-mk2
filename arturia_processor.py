@@ -98,7 +98,7 @@ class ArturiaMidiProcessor:
         def get_panning_line(): return '    [%d%%]' % int(channels.getChannelPan(channels.selectedChannel()) * 100)
         def get_pitch_line(): return '    [%d%%]' % int (channels.getChannelPitch(channels.selectedChannel()) * 100)
         def get_time_position(): return ' [%d:%d:%d]' % (playlist.getVisTimeBar(), playlist.getVisTimeTick(), playlist.getVisTimeStep())
-        def get_pattern_line(): return patterns.getPatternName(patterns.patternNumber())
+        def get_pattern_line(): return self._strip_pattern_name(patterns.getPatternName(patterns.patternNumber()))
         def get_channel_line(): return '[%s]' % (channels.getChannelName(channels.selectedChannel()))
         def get_plugin_line(): return '[%s]' % channels.getChannelName(channels.selectedChannel())
 
@@ -115,9 +115,7 @@ class ArturiaMidiProcessor:
             return ' %3d  %3d [%3d]' % (r, g, b)
 
         def get_playlist_track():
-            name = playlist.getTrackName(self._current_playlist_track_index)
-            if name.startswith('* '):
-                name = name[2:]
+            name = self._strip_pattern_name(playlist.getTrackName(self._current_playlist_track_index))
             return '%d: [%s]' % (self._current_playlist_track_index, name)
 
         def get_target_mixer_track():
@@ -194,7 +192,7 @@ class ArturiaMidiProcessor:
 
     def _jump_and_sync_select_pattern(self, index):
         patterns.jumpToPattern(index)
-        name = patterns.getPatternName(index)
+        name = self._strip_pattern_name(patterns.getPatternName(index))
         self._select_playlist_track_named(name)
 
     def OnUpdatePattern(self, delta):
@@ -261,7 +259,13 @@ class ArturiaMidiProcessor:
         self._toggle_window_visibility(midi.widPianoRoll)
 
     def OnTrackPlaylistKnobPress(self):
-        self._toggle_window_visibility(midi.widPlaylist)
+        track_name = playlist.getTrackName(self._current_playlist_track_index)
+        channel_name = channels.getChannelName(channels.selectedChannel())
+        track_mode = track_name == channel_name and track_name.startswith('* ')
+        if track_mode:
+            self.OnChannelKnobPress()
+        else:
+            self._toggle_window_visibility(midi.widPlaylist)
 
     def OnMixerTrackKnobPress(self):
         self._toggle_window_visibility(midi.widMixer)
@@ -333,7 +337,7 @@ class ArturiaMidiProcessor:
         if channel_idx < 0:
             mixer.setTrackName(prev_track, '')
         elif mixer.getTrackName(prev_track) == mixer.getTrackName(target_track):
-            mixer.setTrackName(prev_track, channels.getChannelName(channel_idx))
+            mixer.setTrackName(prev_track, self._strip_pattern_name(channels.getChannelName(channel_idx)))
         if target_track == 0:
             mixer.setTrackName(target_track, '')
 
@@ -550,9 +554,32 @@ class ArturiaMidiProcessor:
         debug.log('OnTrackRecord', 'Dispatched', event=event)
         self._detect_long_press(event, self.OnTrackRecordShortPress, self.OnTrackRecordLongPress)
 
+    def _strip_pattern_name(self, name):
+        if name.startswith('* '):
+            return name[2:]
+        return name
+
+    def _all_pattern_names(self):
+        return (self._strip_pattern_name(patterns.getPatternName(i)) for i in range(1, patterns.patternCount() + 1))
+
+    def _next_pattern_name(self):
+        pattern_names = self._all_pattern_names()
+        # If there are N patterns, then at most, N+1 instruments
+        selected = channels.selectedChannel()
+        name = self._strip_pattern_name(channels.getChannelName(selected))
+        if name not in pattern_names:
+            return name
+
+        for i in range(1, patterns.patternCount() + 1):
+            suggested = '%s #%d' % (name, i)
+            if suggested not in pattern_names:
+                return suggested
+        return '%s - %d' % (name, patterns.patternCount() + 1)
+
     def _new_empty_pattern(self):
         pattern_id = patterns.patternCount() + 1
-        patterns.setPatternName(pattern_id, 'Pattern %d' % pattern_id)
+        pattern_name = self._next_pattern_name()
+        patterns.setPatternName(pattern_id, pattern_name)
         patterns.jumpToPattern(pattern_id)
         patterns.selectPattern(pattern_id, 1)
         return pattern_id
@@ -590,9 +617,7 @@ class ArturiaMidiProcessor:
         self._display_playlist_track_op_hint('Playlist Track')
 
     def _display_playlist_track_op_hint(self, title):
-        track_name = playlist.getTrackName(self._current_playlist_track_index)
-        if track_name.startswith('* '):
-            track_name = track_name[2:]
+        track_name = self._strip_pattern_name(playlist.getTrackName(self._current_playlist_track_index))
         self._display_hint(title, '%d: %s' % (self._current_playlist_track_index, track_name))
 
     def _deselect_all_playlist_track(self):
@@ -613,16 +638,13 @@ class ArturiaMidiProcessor:
 
     def _select_pattern_named(self, name):
         for i in range(1, patterns.patternCount() + 1):
-            if patterns.getPatternName(i) == name:
+            if self._strip_pattern_name(patterns.getPatternName(i)) == name:
                 patterns.jumpToPattern(i)
                 return
 
     def _select_playlist_track_named(self, name):
         for i in range(1, playlist.trackCount()):
-            track_name = playlist.getTrackName(i)
-            if track_name.startswith('* '):
-                track_name = track_name[2:]
-
+            track_name = self._strip_pattern_name(playlist.getTrackName(i))
             if track_name == name:
                 self._select_playlist_track(i)
                 return
