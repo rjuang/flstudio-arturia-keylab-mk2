@@ -5,6 +5,8 @@ from arturia import ArturiaController
 from arturia_processor import ArturiaMidiProcessor
 
 import arturia_midi
+import config
+import ui
 
 
 WELCOME_DISPLAY_INTERVAL_MS = 1500
@@ -21,11 +23,14 @@ _payload_buffer = []
 
 def OnInit():
     global _controller
-    print('Loaded MIDI script for Arturia Keylab mkII')
+    print('Loaded MIDI script for Arturia Keylab mkII (ver %d)' % config.CHANGE_DATE)
+
     _controller.Sync(0xFFFF)
     _controller.paged_display().SetPageLines('welcome', line1='Connected to ', line2='   FL Studio')
     _controller.paged_display().SetActivePage('main')
     _controller.paged_display().SetActivePage('welcome', expires=WELCOME_DISPLAY_INTERVAL_MS)
+
+    ui.setHintMsg('Script version: %d' % config.CHANGE_DATE)
 
 
 def OnIdle():

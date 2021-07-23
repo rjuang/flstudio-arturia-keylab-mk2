@@ -49,7 +49,7 @@ _drop_note = None
 
 
 def OnInit():
-    print('Loaded MIDI script for Arturia Keylab mkII MIDI')
+    print('Loaded MIDI script for Arturia Keylab mkII MIDI (ver %d)' % config.CHANGE_DATE)
 
 
 def OnRefresh(flags):
