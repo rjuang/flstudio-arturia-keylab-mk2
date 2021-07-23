@@ -521,7 +521,8 @@ class ArturiaMidiProcessor:
 
     def OnTrackSolo(self, event):
         debug.log('OnTrackSolo', 'Dispatched', event=event)
-        if self._pattern_mode_down:
+        playlist_mode = self._navigation.GetMode() == 'Playlist Track'
+        if self._pattern_mode_down or playlist_mode:
             playlist.soloTrack(self._current_playlist_track_index)
             status = playlist.isTrackSolo(self._current_playlist_track_index)
             self._display_playlist_track_op_hint("Solo Playlist: %d" % status)
@@ -531,7 +532,8 @@ class ArturiaMidiProcessor:
 
     def OnTrackMute(self, event):
         debug.log('OnTrackMute', 'Dispatched', event=event)
-        if self._pattern_mode_down:
+        playlist_mode = self._navigation.GetMode() == 'Playlist Track'
+        if self._pattern_mode_down or playlist_mode:
             playlist.muteTrack(self._current_playlist_track_index)
             status = playlist.isTrackMuted(self._current_playlist_track_index)
             self._display_playlist_track_op_hint("Mute Playlist: %d" % status)
