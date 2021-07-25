@@ -61,6 +61,7 @@ class ArturiaMidiProcessor:
         self._playlist_track_updated = False
         self._button_hold_action_committed = False
         self._button_mode = 0
+        self._locked_mode = 0
         self._random = _random.Random()
 
         self._midi_id_dispatcher = (
@@ -398,12 +399,12 @@ class ArturiaMidiProcessor:
         debug.log('OnNavigationKnob', 'Delta = %d' % delta, event=event)
         if self._pattern_mode_down:
             self._change_playlist_track(delta)
-        elif self._button_mode:
-            if self._button_mode == LOOP_BUTTON_MASK:
+        elif self._button_mode or self._locked_mode:
+            if self._button_mode == LOOP_BUTTON_MASK or self._locked_mode == LOOP_BUTTON_MASK:
                 transport.globalTransport(midi.FPT_HZoomJog, delta)
                 # Hack to adjust zoom so that it's centered on current time position.
                 transport.globalTransport(midi.FPT_Jog, 0)
-            elif self._button_mode == REC_BUTTON_MASK:
+            elif self._button_mode == REC_BUTTON_MASK or self._locked_mode == REC_BUTTON_MASK:
                 self._horizontal_scroll(delta)
             elif self._button_mode == PLAY_BUTTON_MASK:
                 transport.globalTransport(midi.FPT_VZoomJog, delta)
@@ -433,13 +434,13 @@ class ArturiaMidiProcessor:
         idx = event.controlNum - 16
         delta = self._get_knob_delta(event)
         self._button_hold_action_committed = True
-        if self._button_mode == LOOP_BUTTON_MASK:
+        if self._button_mode == LOOP_BUTTON_MASK or self._locked_mode == LOOP_BUTTON_MASK:
             if idx <= 7:
                 factor = 24.0 * (2.0 ** (idx - 3))
                 ui.moveJog(int(delta * factor))
             elif idx == 8:
                 ui.moveJog(int(delta))
-        elif self._button_mode == REC_BUTTON_MASK:
+        elif self._button_mode == REC_BUTTON_MASK or self._locked_mode == REC_BUTTON_MASK:
             if idx <= 6:
                 self._horizontal_scroll(delta, power=idx)
         elif self._button_mode == 0:
@@ -825,7 +826,20 @@ class ArturiaMidiProcessor:
 
     def OnNavigationKnobPressed(self, event):
         debug.log('OnNavigationKnobPressed', 'Dispatched', event=event)
-        self._navigation.NotifyKnobPressed()
+        self._button_hold_action_committed = True
+        was_locked = self._locked_mode
+        if self._button_mode & LOOP_BUTTON_MASK:
+            self._locked_mode = LOOP_BUTTON_MASK
+            self._display_hint('Entering', 'Move Mode')
+        elif self._button_mode & REC_BUTTON_MASK:
+            self._locked_mode = REC_BUTTON_MASK
+            self._display_hint('Entering', 'H. Scroll Mode')
+        else:
+            self._locked_mode = 0
+            if not was_locked:
+                self._navigation.NotifyKnobPressed()
+            else:
+                self._display_hint('Exiting mode')
 
     def OnBankNext(self, event):
         self._detect_long_press(event, self.OnBankNextShortPress, self.OnBankNextLongPress)
