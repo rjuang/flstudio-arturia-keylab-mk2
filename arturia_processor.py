@@ -68,7 +68,7 @@ class ArturiaMidiProcessor:
             .SetHandler(93, self.OnTransportsStop)
             .SetHandler(94, self.OnTransportsPausePlay, ignore_release)
             .SetHandler(95, self.OnTransportsRecord)
-            .SetHandler(86, self.OnTransportsLoop, ignore_release)
+            .SetHandler(86, self.OnTransportsLoop)
 
             .SetHandler(80, self.OnGlobalSave)
             .SetHandler(87, self.OnGlobalIn, ignore_release)
@@ -80,8 +80,8 @@ class ArturiaMidiProcessor:
             .SetHandlerForKeys(range(16, 24), self.OnTrackMute, ignore_release)
             .SetHandlerForKeys(range(0, 8), self.OnTrackRecord)
 
-            .SetHandler(74, self.OnTrackRead)
-            .SetHandler(75, self.OnTrackWrite)
+            .SetHandler(74, self.OnTrackRead, ignore_release)
+            .SetHandler(75, self.OnTrackWrite, ignore_release)
 
             .SetHandler(98, self.OnNavigationLeft)
             .SetHandler(99, self.OnNavigationRight)
@@ -470,22 +470,36 @@ class ArturiaMidiProcessor:
     def OnTransportsRecord(self, event):
         if self._is_pressed(event):
             debug.log('OnTransportsRecord [down]', 'Dispatched', event=event)
+            self._zoom_mode |= VZOOM_MASK
+            self._zoom_updated = False
             arturia_midi.dispatch_message_to_other_scripts(
                 arturia_midi.INTER_SCRIPT_STATUS_BYTE,
                 arturia_midi.INTER_SCRIPT_DATA1_BTN_DOWN_CMD,
                 event.controlNum)
         else:
-            debug.log('OnTransportsRecord [up]', 'Dispatched', event=event)
-            if not self._is_pad_recording:
-                transport.record()
+            # Release event
+            self._zoom_mode &= ~VZOOM_MASK
             arturia_midi.dispatch_message_to_other_scripts(
                 arturia_midi.INTER_SCRIPT_STATUS_BYTE,
                 arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD,
                 event.controlNum)
+            if self._zoom_updated:
+                # Update event happened so do not process button release.
+                return
+            debug.log('OnTransportsRecord [up]', 'Dispatched', event=event)
+            if not self._is_pad_recording:
+                transport.record()
 
     def OnTransportsLoop(self, event):
         debug.log('OnTransportsLoop', 'Dispatched', event=event)
-        transport.globalTransport(midi.FPT_LoopRecord, midi.FPT_LoopRecord, event.pmeFlags)
+        if self._is_pressed(event):
+            self._zoom_mode |= HZOOM_MASK
+            self._zoom_updated = False
+        else:
+            self._zoom_mode &= ~HZOOM_MASK
+            if self._zoom_updated:
+                return
+            transport.globalTransport(midi.FPT_LoopRecord, midi.FPT_LoopRecord, event.pmeFlags)
 
     def OnGlobalSave(self, event):
         debug.log('OnGlobalSave', 'Dispatched', event=event)
@@ -678,44 +692,27 @@ class ArturiaMidiProcessor:
 
     def OnTrackRead(self, event):
         debug.log('OnTrackRead', 'Dispatched', event=event)
-        if self._is_pressed(event):
-            self._zoom_mode |= VZOOM_MASK
-            self._zoom_updated = False
-        else:
-            # Release event
-            self._zoom_mode &= ~VZOOM_MASK
-            if self._zoom_updated:
-                # Update event happened so do not process button release.
+        # Move to previous pattern (move up pattern list)
+        if not self._pattern_mode_down:
+            prev = patterns.patternNumber() - 1
+            if prev <= 0:
                 return
-            # Move to previous pattern (move up pattern list)
-            if not self._pattern_mode_down:
-                prev = patterns.patternNumber() - 1
-                if prev <= 0:
-                    return
-                self._jump_and_sync_select_pattern(prev)
-            else:
-                # Adjust track number.
-                self._change_playlist_track(-1)
+            self._jump_and_sync_select_pattern(prev)
+        else:
+            # Adjust track number.
+            self._change_playlist_track(-1)
 
     def OnTrackWrite(self, event):
         debug.log('OnTrackWrite', 'Dispatched', event=event)
-        if self._is_pressed(event):
-            self._zoom_mode |= HZOOM_MASK
-            self._zoom_updated = False
-        else:
-            self._zoom_mode &= ~HZOOM_MASK
-            if self._zoom_updated:
-                # Update event happened, so ignore.
+        # Move to next pattern (move down pattern list)
+        if not self._pattern_mode_down:
+            next = patterns.patternNumber() + 1
+            if next > patterns.patternCount():
                 return
-            # Move to next pattern (move down pattern list)
-            if not self._pattern_mode_down:
-                next = patterns.patternNumber() + 1
-                if next > patterns.patternCount():
-                    return
-                self._jump_and_sync_select_pattern(next)
-            else:
-                # Adjust track number.
-                self._change_playlist_track(1)
+            self._jump_and_sync_select_pattern(next)
+        else:
+            # Adjust track number.
+            self._change_playlist_track(1)
 
     def OnNavigationLeft(self, event):
         self._detect_long_press(event, self.OnNavigationLeftShortPress, self.OnNavigationLeftLongPress)
