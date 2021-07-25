@@ -32,6 +32,11 @@ SS_STOP = 0
 # Event code indicating start start event
 SS_START = 2
 
+# Bitmask for horizontal zoom
+HZOOM_MASK = 0x1
+# Bitmask for vertical zoom
+VZOOM_MASK = 0x2
+
 class ArturiaMidiProcessor:
     @staticmethod
     def _is_pressed(event):
@@ -46,6 +51,8 @@ class ArturiaMidiProcessor:
         self._current_playlist_track_index = 1
         self._pattern_mode_down = False
         self._playlist_track_updated = False
+        self._zoom_updated = False
+        self._zoom_mode = 0
         self._random = _random.Random()
 
         self._midi_id_dispatcher = (
@@ -73,8 +80,8 @@ class ArturiaMidiProcessor:
             .SetHandlerForKeys(range(16, 24), self.OnTrackMute, ignore_release)
             .SetHandlerForKeys(range(0, 8), self.OnTrackRecord)
 
-            .SetHandler(74, self.OnTrackRead, ignore_release)
-            .SetHandler(75, self.OnTrackWrite, ignore_release)
+            .SetHandler(74, self.OnTrackRead)
+            .SetHandler(75, self.OnTrackWrite)
 
             .SetHandler(98, self.OnNavigationLeft)
             .SetHandler(99, self.OnNavigationRight)
@@ -374,6 +381,14 @@ class ArturiaMidiProcessor:
         debug.log('OnNavigationKnob', 'Delta = %d' % delta, event=event)
         if self._pattern_mode_down:
             self._change_playlist_track(delta)
+        elif self._zoom_mode:
+            if self._zoom_mode == 3:   # Both buttons pressed
+                transport.globalTransport(midi.FPT_Jog, delta)
+            elif self._zoom_mode == HZOOM_MASK:
+                transport.globalTransport(midi.FPT_HZoomJog, delta)
+            elif self._zoom_mode == VZOOM_MASK:
+                transport.globalTransport(midi.FPT_VZoomJog, delta)
+            self._zoom_updated = True
         else:
             self._navigation.UpdateValue(delta)
 
@@ -663,27 +678,44 @@ class ArturiaMidiProcessor:
 
     def OnTrackRead(self, event):
         debug.log('OnTrackRead', 'Dispatched', event=event)
-        # Move to previous pattern (move up pattern list)
-        if not self._pattern_mode_down:
-            prev = patterns.patternNumber() - 1
-            if prev <= 0:
-                return
-            self._jump_and_sync_select_pattern(prev)
+        if self._is_pressed(event):
+            self._zoom_mode |= VZOOM_MASK
+            self._zoom_updated = False
         else:
-            # Adjust track number.
-            self._change_playlist_track(-1)
+            # Release event
+            self._zoom_mode &= ~VZOOM_MASK
+            if self._zoom_updated:
+                # Update event happened so do not process button release.
+                return
+            # Move to previous pattern (move up pattern list)
+            if not self._pattern_mode_down:
+                prev = patterns.patternNumber() - 1
+                if prev <= 0:
+                    return
+                self._jump_and_sync_select_pattern(prev)
+            else:
+                # Adjust track number.
+                self._change_playlist_track(-1)
 
     def OnTrackWrite(self, event):
         debug.log('OnTrackWrite', 'Dispatched', event=event)
-        # Move to next pattern (move down pattern list)
-        if not self._pattern_mode_down:
-            next = patterns.patternNumber() + 1
-            if next > patterns.patternCount():
-                return
-            self._jump_and_sync_select_pattern(next)
+        if self._is_pressed(event):
+            self._zoom_mode |= HZOOM_MASK
+            self._zoom_updated = False
         else:
-            # Adjust track number.
-            self._change_playlist_track(1)
+            self._zoom_mode &= ~HZOOM_MASK
+            if self._zoom_updated:
+                # Update event happened, so ignore.
+                return
+            # Move to next pattern (move down pattern list)
+            if not self._pattern_mode_down:
+                next = patterns.patternNumber() + 1
+                if next > patterns.patternCount():
+                    return
+                self._jump_and_sync_select_pattern(next)
+            else:
+                # Adjust track number.
+                self._change_playlist_track(1)
 
     def OnNavigationLeft(self, event):
         self._detect_long_press(event, self.OnNavigationLeftShortPress, self.OnNavigationLeftLongPress)
