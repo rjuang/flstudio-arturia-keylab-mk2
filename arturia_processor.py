@@ -199,10 +199,11 @@ class ArturiaMidiProcessor:
         pan = self.clip(-1., 1., channels.getChannelPitch(channel) + (delta / 100.0))
         channels.setChannelPitch(channel, pan)
 
-    def OnUpdateTimeMarker(self, delta):
+    def OnUpdateTimeMarker(self, delta, power=0):
         num_beats = patterns.getPatternLength(patterns.patternNumber())
         step_size = 1.0 / float(num_beats)
         pos = transport.getSongPos()
+        delta *= (2**power)
         transport.setSongPos(self.clip(0.0, 1.0, pos + step_size * delta))
 
     def _jump_and_sync_select_pattern(self, index):
@@ -384,6 +385,14 @@ class ArturiaMidiProcessor:
         val = event.controlVal
         return val if val < 64 else 64 - val
 
+    def _horizontal_scroll(self, delta, power=0):
+        if ui.getFocused(midi.widPianoRoll):
+            self.OnUpdateTimeMarker(delta, power=power)
+        elif ui.getFocused(midi.widPlaylist):
+            self.OnUpdateTimeMarker(delta, power=power)
+        else:
+            transport.globalTransport(midi.FPT_Jog, delta)
+
     def OnNavigationKnobTurned(self, event):
         delta = self._get_knob_delta(event)
         debug.log('OnNavigationKnob', 'Delta = %d' % delta, event=event)
@@ -395,7 +404,7 @@ class ArturiaMidiProcessor:
                 # Hack to adjust zoom so that it's centered on current time position.
                 transport.globalTransport(midi.FPT_Jog, 0)
             elif self._button_mode == REC_BUTTON_MASK:
-                transport.globalTransport(midi.FPT_Jog, delta)
+                self._horizontal_scroll(delta)
             elif self._button_mode == PLAY_BUTTON_MASK:
                 transport.globalTransport(midi.FPT_VZoomJog, delta)
             elif self._button_mode == STOP_BUTTON_MASK:
@@ -428,10 +437,8 @@ class ArturiaMidiProcessor:
             if idx < 4:
                 transport.globalTransport(midi.FPT_StripJog, delta * 10**idx)
         elif self._button_mode == REC_BUTTON_MASK:
-            mode = midi.SONGLENGTH_MS
-            if idx < 4:
-                pos = max(0, transport.getSongPos(mode) + delta * 10**idx)
-                transport.setSongPos(pos, mode)
+            if idx <= 6:
+                self._horizontal_scroll(delta, power=idx)
         elif self._button_mode == 0:
             self._controller.encoders().ProcessKnobInput(idx, delta)
 
