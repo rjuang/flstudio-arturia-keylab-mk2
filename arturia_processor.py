@@ -581,7 +581,9 @@ class ArturiaMidiProcessor:
     def _new_empty_pattern(self):
         pattern_id = patterns.patternCount() + 1
         pattern_name = self._next_pattern_name()
+        color = channels.getChannelColor(channels.selectedChannel())
         patterns.setPatternName(pattern_id, pattern_name)
+        patterns.setPatternColor(pattern_id, color)
         patterns.jumpToPattern(pattern_id)
         patterns.selectPattern(pattern_id, 1)
         return pattern_id
