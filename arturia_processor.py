@@ -392,7 +392,8 @@ class ArturiaMidiProcessor:
         elif self._button_mode:
             if self._button_mode == LOOP_BUTTON_MASK:
                 transport.globalTransport(midi.FPT_HZoomJog, delta)
-                self._jump_to_cursor()
+                # Hack to adjust zoom so that it's centered on current time position.
+                transport.globalTransport(midi.FPT_Jog, 0)
             elif self._button_mode == REC_BUTTON_MASK:
                 transport.globalTransport(midi.FPT_Jog, delta)
             elif self._button_mode == PLAY_BUTTON_MASK:
@@ -419,22 +420,18 @@ class ArturiaMidiProcessor:
         8: midi.REC_Chan_Plugin_First + 0,
     }
 
-    def _jump_to_cursor(self):
-        transport.globalTransport(midi.FPT_Jog, 0)
-
     def OnPanKnobTurned(self, event):
         idx = event.controlNum - 16
         delta = self._get_knob_delta(event)
         self._button_hold_action_committed = True
-
         if self._button_mode == LOOP_BUTTON_MASK:
-            transport.globalTransport(midi.FPT_StripJog, delta * 10**idx)
-            self._jump_to_cursor()
+            if idx < 4:
+                transport.globalTransport(midi.FPT_StripJog, delta * 10**idx)
         elif self._button_mode == REC_BUTTON_MASK:
             mode = midi.SONGLENGTH_MS
-            pos = max(0, transport.getSongPos(mode) + delta * 10**idx)
-            transport.setSongPos(pos, mode)
-            self._jump_to_cursor()
+            if idx < 4:
+                pos = max(0, transport.getSongPos(mode) + delta * 10**idx)
+                transport.setSongPos(pos, mode)
         elif self._button_mode == 0:
             self._controller.encoders().ProcessKnobInput(idx, delta)
 
@@ -618,7 +615,8 @@ class ArturiaMidiProcessor:
             self._long_press_tasks[control_id] = task
         else:
             # Release event. Attempt to cancel the scheduled long press task.
-            if self._controller.scheduler().CancelTask(self._long_press_tasks[control_id]):
+            if control_id in self._long_press_tasks and self._controller.scheduler().CancelTask(
+                    self._long_press_tasks[control_id]):
                 # Dispatch short function press if successfully cancelled the long press.
                 short_fn(event)
 
@@ -761,28 +759,38 @@ class ArturiaMidiProcessor:
 
     def OnNavigationLeft(self, event):
         if self._is_pressed(event):
+            if self._button_mode & RIGHT_BUTTON_MASK:
+                ui.escape()
+                self._button_hold_action_committed = True
+                return
             self._button_mode |= LEFT_BUTTON_MASK
             self._button_hold_action_committed = False
         else:
             self._button_mode &= ~LEFT_BUTTON_MASK
-
         self._detect_long_press(event, self.OnNavigationLeftShortPress, self.OnNavigationLeftLongPress)
 
     def OnNavigationRight(self, event):
         if self._is_pressed(event):
+            if self._button_mode & LEFT_BUTTON_MASK:
+                ui.escape()
+                self._button_hold_action_committed = True
+                return
             self._button_mode |= RIGHT_BUTTON_MASK
             self._button_hold_action_committed = False
         else:
             self._button_mode &= ~RIGHT_BUTTON_MASK
-
         self._detect_long_press(event, self.OnNavigationRightShortPress, self.OnNavigationRightLongPress)
 
     def OnNavigationLeftShortPress(self, event):
         debug.log('OnNavigationLeftShortPress', 'Dispatched', event=event)
+        if self._button_hold_action_committed:
+            return
         self._navigation.PreviousMode()
 
     def OnNavigationRightShortPress(self, event):
         debug.log('OnNavigationRightShortPress', 'Dispatched', event=event)
+        if self._button_hold_action_committed:
+            return
         self._navigation.NextMode()
 
     def OnNavigationLeftLongPress(self, event):
