@@ -32,10 +32,15 @@ SS_STOP = 0
 # Event code indicating start start event
 SS_START = 2
 
-# Bitmask for horizontal zoom
-HZOOM_MASK = 0x1
-# Bitmask for vertical zoom
-VZOOM_MASK = 0x2
+# Bitmask for loop button
+LOOP_BUTTON_MASK = 0x1
+# Bitmask for record button
+REC_BUTTON_MASK = 0x2
+# Bitmask for play button
+PLAY_BUTTON_MASK = 0x4
+# Bitmask for stop button
+STOP_BUTTON_MASK = 0x8
+
 
 class ArturiaMidiProcessor:
     @staticmethod
@@ -51,8 +56,8 @@ class ArturiaMidiProcessor:
         self._current_playlist_track_index = 1
         self._pattern_mode_down = False
         self._playlist_track_updated = False
-        self._zoom_updated = False
-        self._zoom_mode = 0
+        self._button_hold_action_committed = False
+        self._button_mode = 0
         self._random = _random.Random()
 
         self._midi_id_dispatcher = (
@@ -66,7 +71,7 @@ class ArturiaMidiProcessor:
             .SetHandler(91, self.OnTransportsBack)
             .SetHandler(92, self.OnTransportsForward)
             .SetHandler(93, self.OnTransportsStop)
-            .SetHandler(94, self.OnTransportsPausePlay, ignore_release)
+            .SetHandler(94, self.OnTransportsPausePlay)
             .SetHandler(95, self.OnTransportsRecord)
             .SetHandler(86, self.OnTransportsLoop)
 
@@ -381,14 +386,17 @@ class ArturiaMidiProcessor:
         debug.log('OnNavigationKnob', 'Delta = %d' % delta, event=event)
         if self._pattern_mode_down:
             self._change_playlist_track(delta)
-        elif self._zoom_mode:
-            if self._zoom_mode == 3:   # Both buttons pressed
+        elif self._button_mode:
+            if self._button_mode == PLAY_BUTTON_MASK:
                 transport.globalTransport(midi.FPT_Jog, delta)
-            elif self._zoom_mode == HZOOM_MASK:
+            elif self._button_mode == LOOP_BUTTON_MASK:
                 transport.globalTransport(midi.FPT_HZoomJog, delta)
-            elif self._zoom_mode == VZOOM_MASK:
+            elif self._button_mode == REC_BUTTON_MASK:
                 transport.globalTransport(midi.FPT_VZoomJog, delta)
-            self._zoom_updated = True
+            elif self._button_mode == STOP_BUTTON_MASK:
+                transport.globalTransport(midi.FPT_Jog2, delta)
+
+            self._button_hold_action_committed = True
         else:
             self._navigation.UpdateValue(delta)
 
@@ -407,7 +415,16 @@ class ArturiaMidiProcessor:
     def OnPanKnobTurned(self, event):
         idx = event.controlNum - 16
         delta = self._get_knob_delta(event)
-        self._controller.encoders().ProcessKnobInput(idx, delta)
+        self._button_hold_action_committed = True
+
+        if self._button_mode == PLAY_BUTTON_MASK:
+            mode = midi.SONGLENGTH_MS
+            pos = max(0, transport.getSongPos(mode) + delta * 10**idx)
+            transport.setSongPos(pos, mode)
+        elif self._button_mode == LOOP_BUTTON_MASK:
+            transport.globalTransport(midi.FPT_StripJog, delta * 10**idx)
+        elif self._button_mode == 0:
+            self._controller.encoders().ProcessKnobInput(idx, delta)
 
     def OnTransportsBack(self, event):
         debug.log('OnTransportsBack', 'Dispatched', event=event)
@@ -429,13 +446,17 @@ class ArturiaMidiProcessor:
 
     def OnTransportsStop(self, event):
         if self._is_pressed(event):
+            self._button_mode |= STOP_BUTTON_MASK
+            self._button_hold_action_committed = False
             debug.log('OnTransportsStop [down]', 'Dispatched', event=event)
-            self._controller.metronome().Reset()
-            transport.stop()
             data1 = arturia_midi.INTER_SCRIPT_DATA1_BTN_DOWN_CMD
         else:
             debug.log('OnTransportsStop [up]', 'Dispatched', event=event)
             data1 = arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD
+            self._button_mode &= ~STOP_BUTTON_MASK
+            if not self._button_hold_action_committed:
+                self._controller.metronome().Reset()
+                transport.stop()
 
         arturia_midi.dispatch_message_to_other_scripts(
             arturia_midi.INTER_SCRIPT_STATUS_BYTE,
@@ -459,31 +480,39 @@ class ArturiaMidiProcessor:
 
     def OnTransportsPausePlay(self, event):
         debug.log('OnTransportsPausePlay', 'Dispatched', event=event)
-        song_mode = transport.getLoopMode() == 1
-        if config.ENABLE_PIANO_ROLL_FOCUS_DURING_RECORD_AND_PLAYBACK:
-            if song_mode:
-                self._show_and_focus(midi.widPlaylist)
-            else:
-                self._show_and_focus(midi.widPianoRoll)
-        transport.globalTransport(midi.FPT_Play, midi.FPT_Play, event.pmeFlags)
+        if self._is_pressed(event):
+            self._button_mode |= PLAY_BUTTON_MASK
+            self._button_hold_action_committed = False
+        else:
+            self._button_mode &= ~PLAY_BUTTON_MASK
+            if self._button_hold_action_committed:
+                # Update event happened so do not process button release.
+                return
+            song_mode = transport.getLoopMode() == 1
+            if config.ENABLE_PIANO_ROLL_FOCUS_DURING_RECORD_AND_PLAYBACK:
+                if song_mode:
+                    self._show_and_focus(midi.widPlaylist)
+                else:
+                    self._show_and_focus(midi.widPianoRoll)
+            transport.globalTransport(midi.FPT_Play, midi.FPT_Play, event.pmeFlags)
 
     def OnTransportsRecord(self, event):
         if self._is_pressed(event):
             debug.log('OnTransportsRecord [down]', 'Dispatched', event=event)
-            self._zoom_mode |= VZOOM_MASK
-            self._zoom_updated = False
+            self._button_mode |= REC_BUTTON_MASK
+            self._button_hold_action_committed = False
             arturia_midi.dispatch_message_to_other_scripts(
                 arturia_midi.INTER_SCRIPT_STATUS_BYTE,
                 arturia_midi.INTER_SCRIPT_DATA1_BTN_DOWN_CMD,
                 event.controlNum)
         else:
             # Release event
-            self._zoom_mode &= ~VZOOM_MASK
+            self._button_mode &= ~REC_BUTTON_MASK
             arturia_midi.dispatch_message_to_other_scripts(
                 arturia_midi.INTER_SCRIPT_STATUS_BYTE,
                 arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD,
                 event.controlNum)
-            if self._zoom_updated:
+            if self._button_hold_action_committed:
                 # Update event happened so do not process button release.
                 return
             debug.log('OnTransportsRecord [up]', 'Dispatched', event=event)
@@ -493,11 +522,11 @@ class ArturiaMidiProcessor:
     def OnTransportsLoop(self, event):
         debug.log('OnTransportsLoop', 'Dispatched', event=event)
         if self._is_pressed(event):
-            self._zoom_mode |= HZOOM_MASK
-            self._zoom_updated = False
+            self._button_mode |= LOOP_BUTTON_MASK
+            self._button_hold_action_committed = False
         else:
-            self._zoom_mode &= ~HZOOM_MASK
-            if self._zoom_updated:
+            self._button_mode &= ~LOOP_BUTTON_MASK
+            if self._button_hold_action_committed:
                 return
             transport.globalTransport(midi.FPT_LoopRecord, midi.FPT_LoopRecord, event.pmeFlags)
 
@@ -622,6 +651,10 @@ class ArturiaMidiProcessor:
         ui.copy()
         self._new_empty_pattern()
         ui.paste()
+        # Hack to fix the pattern shift by moving it to far left most.
+        transport.globalTransport(midi.FPT_StripJog, -midi.FromMIDI_Max)
+        # Deselect region once we've copied it out.
+        transport.globalTransport(midi.FPT_PunchOut, midi.FPT_PunchOut)
 
     def _clone_active_pattern(self):
         active_channel = channels.selectedChannel()
