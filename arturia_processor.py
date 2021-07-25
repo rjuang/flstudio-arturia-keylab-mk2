@@ -17,7 +17,6 @@ import ui
 import utils
 
 from arturia_display import ArturiaDisplay
-from arturia_encoders import ArturiaInputControls
 from arturia_midi import MidiEventDispatcher
 from arturia_navigation import NavigationMode
 from arturia_leds import ArturiaLights
@@ -40,6 +39,10 @@ REC_BUTTON_MASK = 0x2
 PLAY_BUTTON_MASK = 0x4
 # Bitmask for stop button
 STOP_BUTTON_MASK = 0x8
+# Bitmask for left nav arrow
+LEFT_BUTTON_MASK = 0x16
+# Bitmask for right nav arrow
+RIGHT_BUTTON_MASK = 0x32
 
 
 class ArturiaMidiProcessor:
@@ -387,15 +390,19 @@ class ArturiaMidiProcessor:
         if self._pattern_mode_down:
             self._change_playlist_track(delta)
         elif self._button_mode:
-            if self._button_mode == PLAY_BUTTON_MASK:
-                transport.globalTransport(midi.FPT_Jog, delta)
-            elif self._button_mode == LOOP_BUTTON_MASK:
+            if self._button_mode == LOOP_BUTTON_MASK:
                 transport.globalTransport(midi.FPT_HZoomJog, delta)
+                self._jump_to_cursor()
             elif self._button_mode == REC_BUTTON_MASK:
+                transport.globalTransport(midi.FPT_Jog, delta)
+            elif self._button_mode == PLAY_BUTTON_MASK:
                 transport.globalTransport(midi.FPT_VZoomJog, delta)
             elif self._button_mode == STOP_BUTTON_MASK:
                 transport.globalTransport(midi.FPT_Jog2, delta)
-
+            elif self._button_mode == LEFT_BUTTON_MASK:
+                ui.selectWindow(delta < 0)
+            elif self._button_mode == RIGHT_BUTTON_MASK:
+                transport.globalTransport(midi.FPT_MixerWindowJog, delta)
             self._button_hold_action_committed = True
         else:
             self._navigation.UpdateValue(delta)
@@ -412,17 +419,22 @@ class ArturiaMidiProcessor:
         8: midi.REC_Chan_Plugin_First + 0,
     }
 
+    def _jump_to_cursor(self):
+        transport.globalTransport(midi.FPT_Jog, 0)
+
     def OnPanKnobTurned(self, event):
         idx = event.controlNum - 16
         delta = self._get_knob_delta(event)
         self._button_hold_action_committed = True
 
-        if self._button_mode == PLAY_BUTTON_MASK:
+        if self._button_mode == LOOP_BUTTON_MASK:
+            transport.globalTransport(midi.FPT_StripJog, delta * 10**idx)
+            self._jump_to_cursor()
+        elif self._button_mode == REC_BUTTON_MASK:
             mode = midi.SONGLENGTH_MS
             pos = max(0, transport.getSongPos(mode) + delta * 10**idx)
             transport.setSongPos(pos, mode)
-        elif self._button_mode == LOOP_BUTTON_MASK:
-            transport.globalTransport(midi.FPT_StripJog, delta * 10**idx)
+            self._jump_to_cursor()
         elif self._button_mode == 0:
             self._controller.encoders().ProcessKnobInput(idx, delta)
 
@@ -748,9 +760,21 @@ class ArturiaMidiProcessor:
             self._change_playlist_track(1)
 
     def OnNavigationLeft(self, event):
+        if self._is_pressed(event):
+            self._button_mode |= LEFT_BUTTON_MASK
+            self._button_hold_action_committed = False
+        else:
+            self._button_mode &= ~LEFT_BUTTON_MASK
+
         self._detect_long_press(event, self.OnNavigationLeftShortPress, self.OnNavigationLeftLongPress)
 
     def OnNavigationRight(self, event):
+        if self._is_pressed(event):
+            self._button_mode |= RIGHT_BUTTON_MASK
+            self._button_hold_action_committed = False
+        else:
+            self._button_mode &= ~RIGHT_BUTTON_MASK
+
         self._detect_long_press(event, self.OnNavigationRightShortPress, self.OnNavigationRightLongPress)
 
     def OnNavigationLeftShortPress(self, event):
@@ -763,6 +787,8 @@ class ArturiaMidiProcessor:
 
     def OnNavigationLeftLongPress(self, event):
         debug.log('OnNavigationLeftLongPress', 'Dispatched', event=event)
+        if self._button_hold_action_committed:
+            return
         # Toggle visibility of channel rack
         is_visible = self._toggle_visibility(midi.widChannelRack)
         visible_str = 'VISIBLE' if is_visible else 'HIDDEN'
@@ -771,6 +797,8 @@ class ArturiaMidiProcessor:
 
     def OnNavigationRightLongPress(self, event):
         debug.log('OnNavigationRightLongPress', 'Dispatched', event=event)
+        if self._button_hold_action_committed:
+            return
         # Toggle visibility of mixer panel
         is_visible = self._toggle_visibility(midi.widMixer)
         visible_str = 'VISIBLE' if is_visible else 'HIDDEN'
