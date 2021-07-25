@@ -434,8 +434,11 @@ class ArturiaMidiProcessor:
         delta = self._get_knob_delta(event)
         self._button_hold_action_committed = True
         if self._button_mode == LOOP_BUTTON_MASK:
-            if idx < 4:
-                transport.globalTransport(midi.FPT_StripJog, delta * 10**idx)
+            if idx <= 7:
+                factor = 24.0 * (2.0 ** (idx - 3))
+                ui.moveJog(int(delta * factor))
+            elif idx == 8:
+                ui.moveJog(int(delta))
         elif self._button_mode == REC_BUTTON_MASK:
             if idx <= 6:
                 self._horizontal_scroll(delta, power=idx)
