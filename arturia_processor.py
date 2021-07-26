@@ -700,6 +700,9 @@ class ArturiaMidiProcessor:
     def _next_free_mixer_track(self):
         last_track = 0
         for i in range(channels.channelCount()):
+            if i == channels.selectedChannel():
+                # Skip the assignment for the channel we are assigning.
+                continue
             last_track = max(last_track, channels.getTargetFxTrack(i))
         return last_track + 1
 
