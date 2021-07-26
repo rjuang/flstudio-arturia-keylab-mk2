@@ -286,7 +286,9 @@ class ArturiaMidiProcessor:
             self._toggle_window_visibility(midi.widPlaylist)
 
     def OnMixerTrackKnobPress(self):
-        self._toggle_window_visibility(midi.widMixer)
+        track = self._next_free_mixer_track()
+        prev_track = channels.getTargetFxTrack(channels.selectedChannel())
+        self.OnUpdateTargetMixerTrack(track - prev_track)
 
     def OnUnassignedKnobPress(self):
         # TODO
@@ -694,6 +696,12 @@ class ArturiaMidiProcessor:
         self._new_empty_pattern()
         ui.paste()
         self._select_one_channel(active_channel)
+
+    def _next_free_mixer_track(self):
+        last_track = 0
+        for i in range(channels.channelCount()):
+            last_track = max(last_track, channels.getTargetFxTrack(i))
+        return last_track + 1
 
     def OnTrackRecordShortPress(self, event):
         debug.log('OnTrackRecord Short', 'Dispatched', event=event)
