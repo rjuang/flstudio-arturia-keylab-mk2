@@ -437,9 +437,9 @@ class ArturiaMidiProcessor:
         if self._button_mode == LOOP_BUTTON_MASK or self._locked_mode == LOOP_BUTTON_MASK:
             if idx <= 7:
                 factor = 24.0 * (2.0 ** (idx - 3))
-                ui.moveJog(int(delta * factor))
+                ui.stripJog(int(delta * factor))
             elif idx == 8:
-                ui.moveJog(int(delta))
+                ui.stripJog(int(delta))
         elif self._button_mode == REC_BUTTON_MASK or self._locked_mode == REC_BUTTON_MASK:
             if idx <= 6:
                 self._horizontal_scroll(delta, power=idx)
