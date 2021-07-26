@@ -700,10 +700,8 @@ class ArturiaMidiProcessor:
         # Piano roll needs to be in focus to determine if a new pattern is needed
         self._show_and_focus(midi.widPianoRoll)
         if arrangement.selectionEnd() > arrangement.selectionStart():
-            print('New pattern from selected')
             self._new_pattern_from_selected()
         else:
-            print('New empty pattern')
             self._new_empty_pattern()
 
     def OnTrackRecordLongPress(self, event):
