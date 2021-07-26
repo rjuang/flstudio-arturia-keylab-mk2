@@ -210,6 +210,7 @@ class ArturiaMidiProcessor:
     def _jump_and_sync_select_pattern(self, index):
         patterns.jumpToPattern(index)
         name = self._strip_pattern_name(patterns.getPatternName(index))
+        self._select_channel_from_name(name)
         self._select_playlist_track_named(name)
 
     def OnUpdatePattern(self, delta):
@@ -652,10 +653,10 @@ class ArturiaMidiProcessor:
             return name
 
         for i in range(1, patterns.patternCount() + 1):
-            suggested = '%s #%d' % (name, i)
+            suggested = '%s [%d]' % (name, i)
             if suggested not in pattern_names:
                 return suggested
-        return '%s - %d' % (name, patterns.patternCount() + 1)
+        return '%s [%d]' % (name, patterns.patternCount() + 1)
 
     def _new_empty_pattern(self):
         pattern_id = patterns.patternCount() + 1
@@ -677,6 +678,14 @@ class ArturiaMidiProcessor:
         # Deselect region once we've copied it out.
         transport.globalTransport(midi.FPT_PunchOut, midi.FPT_PunchOut)
 
+    def _select_channel_from_name(self, name):
+        base = name.split(' [')[0]
+        for i in range(channels.channelCount()):
+            if base == channels.getChannelName(i):
+                self._select_one_channel(i)
+                return True
+        return False
+
     def _clone_active_pattern(self):
         active_channel = channels.selectedChannel()
         self._show_and_focus(midi.widChannelRack)
@@ -688,9 +697,13 @@ class ArturiaMidiProcessor:
 
     def OnTrackRecordShortPress(self, event):
         debug.log('OnTrackRecord Short', 'Dispatched', event=event)
+        # Piano roll needs to be in focus to determine if a new pattern is needed
+        self._show_and_focus(midi.widPianoRoll)
         if arrangement.selectionEnd() > arrangement.selectionStart():
+            print('New pattern from selected')
             self._new_pattern_from_selected()
         else:
+            print('New empty pattern')
             self._new_empty_pattern()
 
     def OnTrackRecordLongPress(self, event):
