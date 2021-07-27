@@ -63,6 +63,8 @@ class ArturiaMidiProcessor:
         self._button_mode = 0
         self._locked_mode = 0
         self._random = _random.Random()
+        self._mixer_plugins_visible = False
+        self._mixer_plugins_last_track = 0
 
         self._midi_id_dispatcher = (
             MidiEventDispatcher(by_midi_id)
@@ -273,6 +275,26 @@ class ArturiaMidiProcessor:
             ui.showWindow(window)
             ui.setFocused(window)
 
+    def _toggle_all_mixer_plugins(self):
+        mixer_track = channels.getTargetFxTrack(channels.selectedChannel())
+        mixer.setTrackNumber(mixer_track)
+        if mixer_track != self._mixer_plugins_last_track:
+            self._mixer_plugins_last_track = mixer_track
+            self._mixer_plugins_visible = False
+        self._mixer_plugins_visible = ~self._mixer_plugins_visible
+        track_name = "(%s)" % mixer.getTrackName(mixer_track)
+        names = set()
+        while True:
+            transport.globalTransport(midi.FPT_MixerWindowJog, 1)
+            window_title = ui.getFocusedFormCaption()
+            if window_title in names or track_name not in window_title:
+                break
+            names.add(window_title)
+        if not self._mixer_plugins_visible:
+            # Close all windows
+            while ui.getFocusedFormCaption() in names:
+                ui.escape()
+
     def OnPatternKnobPress(self):
         self._toggle_window_visibility(midi.widPianoRoll)
 
@@ -286,9 +308,11 @@ class ArturiaMidiProcessor:
             self._toggle_window_visibility(midi.widPlaylist)
 
     def OnMixerTrackKnobPress(self):
-        track = self._next_free_mixer_track()
-        prev_track = channels.getTargetFxTrack(channels.selectedChannel())
-        self.OnUpdateTargetMixerTrack(track - prev_track)
+        if not channels.getTargetFxTrack(channels.selectedChannel()):
+            track = self._next_free_mixer_track()
+            self.OnUpdateTargetMixerTrack(track)
+        else:
+            self._toggle_all_mixer_plugins()
 
     def OnUnassignedKnobPress(self):
         # TODO
@@ -918,7 +942,6 @@ class ArturiaMidiProcessor:
         else:
             channels.deselectAll()
             channels.selectChannel(index, 1)
-
         if config.ENABLE_CONTROLS_FL_HINTS:
             ui.setHintMsg('[%d:%d] %s' % (channels.selectedChannel() + 1, patterns.patternNumber(),
                                           channels.getChannelName(channels.selectedChannel())))
