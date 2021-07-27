@@ -622,10 +622,10 @@ class ArturiaMidiProcessor:
         else:
             channels.muteChannel(channels.selectedChannel())
 
-    def _detect_long_press(self, event, short_fn, long_fn):
+    def _detect_long_press(self, event, short_fn, long_fn, duration_ms=450):
         control_id = event.controlNum
         if self._is_pressed(event):
-            task = self._controller.scheduler().ScheduleTask(lambda: long_fn(event), delay=450)
+            task = self._controller.scheduler().ScheduleTask(lambda: long_fn(event), delay=duration_ms)
             self._long_press_tasks[control_id] = task
         else:
             # Release event. Attempt to cancel the scheduled long press task.
@@ -800,7 +800,8 @@ class ArturiaMidiProcessor:
             self._button_hold_action_committed = False
         else:
             self._button_mode &= ~LEFT_BUTTON_MASK
-        self._detect_long_press(event, self.OnNavigationLeftShortPress, self.OnNavigationLeftLongPress)
+        self._detect_long_press(event, self.OnNavigationLeftShortPress, self.OnNavigationLeftLongPress,
+                                duration_ms=1000)
 
     def OnNavigationRight(self, event):
         if self._is_pressed(event):
@@ -812,7 +813,8 @@ class ArturiaMidiProcessor:
             self._button_hold_action_committed = False
         else:
             self._button_mode &= ~RIGHT_BUTTON_MASK
-        self._detect_long_press(event, self.OnNavigationRightShortPress, self.OnNavigationRightLongPress)
+        self._detect_long_press(event, self.OnNavigationRightShortPress, self.OnNavigationRightLongPress,
+                                duration_ms=1000)
 
     def OnNavigationLeftShortPress(self, event):
         debug.log('OnNavigationLeftShortPress', 'Dispatched', event=event)
