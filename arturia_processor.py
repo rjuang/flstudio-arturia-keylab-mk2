@@ -210,10 +210,10 @@ class ArturiaMidiProcessor:
         transport.setSongPos(self.clip(0.0, 1.0, pos + step_size * delta))
 
     def _jump_and_sync_select_pattern(self, index):
-        patterns.jumpToPattern(index)
         name = self._strip_pattern_name(patterns.getPatternName(index))
         self._select_channel_from_name(name)
         self._select_playlist_track_named(name)
+        patterns.jumpToPattern(index)
 
     def OnUpdatePattern(self, delta):
         index = self.clip(1, patterns.patternCount(), patterns.patternNumber() + delta)
@@ -776,9 +776,10 @@ class ArturiaMidiProcessor:
                 return
 
     def _select_playlist_track_named(self, name):
+        base = name.split(' [')[0]
         for i in range(1, playlist.trackCount()):
             track_name = self._strip_pattern_name(playlist.getTrackName(i))
-            if track_name == name:
+            if track_name == base:
                 self._select_playlist_track(i)
                 return
 
