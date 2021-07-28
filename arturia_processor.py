@@ -43,6 +43,8 @@ STOP_BUTTON_MASK = 0x8
 LEFT_BUTTON_MASK = 0x16
 # Bitmask for right nav arrow
 RIGHT_BUTTON_MASK = 0x32
+# Bitmask for save button (song/pattern button)
+SAVE_BUTTON_MASK = 0x64
 
 
 class ArturiaMidiProcessor:
@@ -57,8 +59,6 @@ class ArturiaMidiProcessor:
 
         self._controller = controller
         self._current_playlist_track_index = 1
-        self._pattern_mode_down = False
-        self._playlist_track_updated = False
         self._button_hold_action_committed = False
         self._button_mode = 0
         self._locked_mode = 0
@@ -420,7 +420,7 @@ class ArturiaMidiProcessor:
     def OnNavigationKnobTurned(self, event):
         delta = self._get_knob_delta(event)
         debug.log('OnNavigationKnob', 'Delta = %d' % delta, event=event)
-        if self._pattern_mode_down:
+        if self._button_mode == SAVE_BUTTON_MASK:
             self._change_playlist_track(delta)
         elif self._button_mode or self._locked_mode:
             if self._button_mode == LOOP_BUTTON_MASK or self._locked_mode == LOOP_BUTTON_MASK:
@@ -576,11 +576,11 @@ class ArturiaMidiProcessor:
     def OnGlobalSave(self, event):
         debug.log('OnGlobalSave', 'Dispatched', event=event)
         if self._is_pressed(event):
-            self._pattern_mode_down = True
-            self._playlist_track_updated = False
+            self._button_mode |= SAVE_BUTTON_MASK
+            self._button_hold_action_committed = False
         else:
-            self._pattern_mode_down = False
-            if not self._playlist_track_updated:
+            self._button_mode &= ~SAVE_BUTTON_MASK
+            if not self._button_hold_action_committed:
                 transport.setLoopMode()
 
     def OnGlobalIn(self, event):
@@ -623,22 +623,22 @@ class ArturiaMidiProcessor:
     def OnTrackSolo(self, event):
         debug.log('OnTrackSolo', 'Dispatched', event=event)
         playlist_mode = self._navigation.GetMode() == 'Playlist Track'
-        if self._pattern_mode_down or playlist_mode:
+        if self._button_mode == SAVE_BUTTON_MASK or playlist_mode:
             playlist.soloTrack(self._current_playlist_track_index)
             status = playlist.isTrackSolo(self._current_playlist_track_index)
             self._display_playlist_track_op_hint("Solo Playlist: %d" % status)
-            self._playlist_track_updated = True
+            self._button_hold_action_committed = True
         else:
             channels.soloChannel(channels.selectedChannel())
 
     def OnTrackMute(self, event):
         debug.log('OnTrackMute', 'Dispatched', event=event)
         playlist_mode = self._navigation.GetMode() == 'Playlist Track'
-        if self._pattern_mode_down or playlist_mode:
+        if self._button_mode == SAVE_BUTTON_MASK or playlist_mode:
             playlist.muteTrack(self._current_playlist_track_index)
             status = playlist.isTrackMuted(self._current_playlist_track_index)
             self._display_playlist_track_op_hint("Mute Playlist: %d" % status)
-            self._playlist_track_updated = True
+            self._button_hold_action_committed = True
         else:
             channels.muteChannel(channels.selectedChannel())
 
@@ -785,31 +785,31 @@ class ArturiaMidiProcessor:
         if 0 < next <= playlist.trackCount():
             self._select_playlist_track(next)
         self._display_playlist_track_hint()
-        self._playlist_track_updated = True
+        self._button_hold_action_committed = True
 
     def OnTrackRead(self, event):
         debug.log('OnTrackRead', 'Dispatched', event=event)
         # Move to previous pattern (move up pattern list)
-        if not self._pattern_mode_down:
+        if self._button_mode == SAVE_BUTTON_MASK:
+            # Adjust track number.
+            self._change_playlist_track(-1)
+        else:
             prev = patterns.patternNumber() - 1
             if prev <= 0:
                 return
             self._jump_and_sync_select_pattern(prev)
-        else:
-            # Adjust track number.
-            self._change_playlist_track(-1)
 
     def OnTrackWrite(self, event):
         debug.log('OnTrackWrite', 'Dispatched', event=event)
         # Move to next pattern (move down pattern list)
-        if not self._pattern_mode_down:
+        if self._button_mode == SAVE_BUTTON_MASK:
+            # Adjust track number.
+            self._change_playlist_track(1)
+        else:
             next = patterns.patternNumber() + 1
             if next > patterns.patternCount():
                 return
             self._jump_and_sync_select_pattern(next)
-        else:
-            # Adjust track number.
-            self._change_playlist_track(1)
 
     def OnNavigationLeft(self, event):
         if self._is_pressed(event):
