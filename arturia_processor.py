@@ -278,22 +278,24 @@ class ArturiaMidiProcessor:
     def _toggle_all_mixer_plugins(self):
         mixer_track = channels.getTargetFxTrack(channels.selectedChannel())
         mixer.setTrackNumber(mixer_track)
-        if mixer_track != self._mixer_plugins_last_track:
-            self._mixer_plugins_last_track = mixer_track
-            self._mixer_plugins_visible = False
-        self._mixer_plugins_visible = ~self._mixer_plugins_visible
-        track_name = "(%s)" % mixer.getTrackName(mixer_track)
-        names = set()
-        while True:
-            transport.globalTransport(midi.FPT_MixerWindowJog, 1)
-            window_title = ui.getFocusedFormCaption()
-            if window_title in names or track_name not in window_title:
-                break
-            names.add(window_title)
-        if not self._mixer_plugins_visible:
-            # Close all windows
-            while ui.getFocusedFormCaption() in names:
-                ui.escape()
+        # TODO: Section below seems to crash in windows. Consider rate-limiting calls to globalTransport and window
+        # fetching. Also possible crash when trying to get caption when no window in focus.
+        # if mixer_track != self._mixer_plugins_last_track:
+        #    self._mixer_plugins_last_track = mixer_track
+        #    self._mixer_plugins_visible = False
+        # self._mixer_plugins_visible = ~self._mixer_plugins_visible
+        # track_name = "(%s)" % mixer.getTrackName(mixer_track)
+        # names = set()
+        # while True:
+        #    transport.globalTransport(midi.FPT_MixerWindowJog, 1)
+        #    window_title = ui.getFocusedFormCaption()
+        #    if window_title in names or track_name not in window_title:
+        #        break
+        #    names.add(window_title)
+        # if not self._mixer_plugins_visible:
+        #    # Close all windows
+        #    while ui.getFocusedFormCaption() in names:
+        #        ui.escape()
 
     def OnPatternKnobPress(self):
         self._toggle_window_visibility(midi.widPianoRoll)
