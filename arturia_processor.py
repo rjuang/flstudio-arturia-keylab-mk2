@@ -32,19 +32,19 @@ SS_STOP = 0
 SS_START = 2
 
 # Bitmask for loop button
-LOOP_BUTTON_MASK = 0x1
+LOOP_BUTTON_MASK = 1
 # Bitmask for record button
-REC_BUTTON_MASK = 0x2
+REC_BUTTON_MASK = 2
 # Bitmask for play button
-PLAY_BUTTON_MASK = 0x4
+PLAY_BUTTON_MASK = 4
 # Bitmask for stop button
-STOP_BUTTON_MASK = 0x8
+STOP_BUTTON_MASK = 8
 # Bitmask for left nav arrow
-LEFT_BUTTON_MASK = 0x16
+LEFT_BUTTON_MASK = 16
 # Bitmask for right nav arrow
-RIGHT_BUTTON_MASK = 0x32
+RIGHT_BUTTON_MASK = 32
 # Bitmask for save button (song/pattern button)
-SAVE_BUTTON_MASK = 0x64
+SAVE_BUTTON_MASK = 64
 
 
 class ArturiaMidiProcessor:
@@ -817,6 +817,15 @@ class ArturiaMidiProcessor:
                 ui.escape()
                 self._button_hold_action_committed = True
                 return
+
+            if self._button_mode == SAVE_BUTTON_MASK:
+                # Toggle visibility of mixer panel
+                is_visible = self._toggle_visibility(midi.widPianoRoll)
+                visible_str = 'VISIBLE' if is_visible else 'HIDDEN'
+                self._display_hint(line1='Piano Roll', line2=visible_str)
+                self._button_hold_action_committed = True
+                return
+
             self._button_mode |= LEFT_BUTTON_MASK
             self._button_hold_action_committed = False
         else:
@@ -828,6 +837,13 @@ class ArturiaMidiProcessor:
         if self._is_pressed(event):
             if self._button_mode & LEFT_BUTTON_MASK:
                 ui.escape()
+                self._button_hold_action_committed = True
+                return
+
+            if self._button_mode == SAVE_BUTTON_MASK:
+                is_visible = self._toggle_visibility(midi.widPlaylist)
+                visible_str = 'VISIBLE' if is_visible else 'HIDDEN'
+                self._display_hint(line1='Playlist', line2=visible_str)
                 self._button_hold_action_committed = True
                 return
             self._button_mode |= RIGHT_BUTTON_MASK
