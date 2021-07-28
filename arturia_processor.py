@@ -115,22 +115,9 @@ class ArturiaMidiProcessor:
         def get_volume_line(): return '    [%d%%]' % int(channels.getChannelVolume(channels.selectedChannel()) * 100)
         def get_panning_line(): return '    [%d%%]' % int(channels.getChannelPan(channels.selectedChannel()) * 100)
         def get_pitch_line(): return '    [%d%%]' % int (channels.getChannelPitch(channels.selectedChannel()) * 100)
-        def get_time_position(): return ' [%d:%d:%d]' % (playlist.getVisTimeBar(), playlist.getVisTimeTick(), playlist.getVisTimeStep())
         def get_pattern_line(): return self._strip_pattern_name(patterns.getPatternName(patterns.patternNumber()))
         def get_channel_line(): return '[%s]' % (channels.getChannelName(channels.selectedChannel()))
         def get_plugin_line(): return '[%s]' % channels.getChannelName(channels.selectedChannel())
-
-        def get_color_red_line():
-            r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
-            return '[%3d] %3d  %3d ' % (r, g, b)
-
-        def get_color_green_line():
-            r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
-            return ' %3d [%3d] %3d ' % (r, g, b)
-
-        def get_color_blue_line():
-            r, g, b = utils.ColorToRGB(channels.getChannelColor(channels.selectedChannel()))
-            return ' %3d  %3d [%3d]' % (r, g, b)
 
         def get_playlist_track():
             name = self._strip_pattern_name(playlist.getTrackName(self._current_playlist_track_index))
@@ -151,11 +138,7 @@ class ArturiaMidiProcessor:
             self._navigation.AddMode('Pitch', self.OnUpdatePitch, self.OnPitchKnobPress, get_pitch_line)
 
         (self._navigation
-            .AddMode('Time Marker', self.OnUpdateTimeMarker, self.OnUnassignedKnobPress, get_time_position)
-            # TODO: Combine RED/GREEN/BLUE to a single preset
-            .AddMode('Red Color', self.OnUpdateColorRed, self.OnColorKnobPress, get_color_red_line)
-            .AddMode('Green Color', self.OnUpdateColorGreen, self.OnColorKnobPress, get_color_green_line)
-            .AddMode('Blue Color',  self.OnUpdateColorBlue, self.OnColorKnobPress, get_color_blue_line)
+            .AddMode('Auto Color', self.OnUpdateChannel, self.OnColorKnobPress, get_channel_line)
             .AddMode('Plugin Preset', self.OnUpdatePlugin, self.OnChannelKnobPress, get_plugin_line)
             .AddMode('Pattern', self.OnUpdatePattern, self.OnPatternKnobPress, get_pattern_line)
             .AddMode('Playlist Track', self.OnUpdatePlaylistTrack, self.OnTrackPlaylistKnobPress, get_playlist_track)
@@ -372,6 +355,14 @@ class ArturiaMidiProcessor:
         track = max(1, min(playlist.trackCount(), self._current_playlist_track_index + delta))
         self._select_playlist_track(track)
 
+    def _recolor_mixer_track(self, index):
+        if index != 0:
+            for i in range(channels.channelCount()):
+                if channels.getTargetFxTrack(i) == index:
+                    mixer.setTrackColor(index, channels.getChannelColor(i))
+                    return
+        mixer.setTrackColor(index, -10261391)
+
     def OnUpdateTargetMixerTrack(self, delta):
         max_track_idx = mixer.trackCount() - 2   # One of the track is a control track
         prev_track = channels.getTargetFxTrack(channels.selectedChannel())
@@ -386,6 +377,9 @@ class ArturiaMidiProcessor:
             mixer.setTrackName(prev_track, self._strip_pattern_name(channels.getChannelName(channel_idx)))
         if target_track == 0:
             mixer.setTrackName(target_track, '')
+        if target_track != 0:
+            mixer.setTrackNumber(target_track, channels.getChannelColor(channels.selectedChannel()))
+        self._recolor_mixer_track(prev_track)
 
     def ProcessEvent(self, event):
         return self._midi_id_dispatcher.Dispatch(event)
