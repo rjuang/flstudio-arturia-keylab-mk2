@@ -15,7 +15,8 @@ class Scheduler:
 
     def ScheduleTask(self, task, delay=0):
         time_ms = time.monotonic() * 1000
-        entry = (time_ms + delay, task)
+        # Pick a number that will break the tie so that we don't compare the last element of the tuple
+        entry = (time_ms + delay, len(self._tasks_pq), task)
         _heapq.heappush(self._tasks_pq, entry)
         return entry
 
@@ -35,5 +36,5 @@ class Scheduler:
                 # Entry delay condition not met. Put back on queue and wait until next refresh cycle.
                 _heapq.heappush(self._tasks_pq, entry)
                 return
-            task = entry[1]
+            task = entry[-1]
             task()
