@@ -1,4 +1,3 @@
-import arturia_midi
 from arturia_midi import send_to_device
 
 import device
@@ -6,6 +5,7 @@ import time
 import utils
 
 ESSENTIAL_KEYBOARD = 'mkII' not in device.getName()
+MKII_88_KEYBOARD = 'mkII 88' in device.getName()
 
 
 class ArturiaLights:
@@ -192,6 +192,23 @@ class ArturiaLights:
     @staticmethod
     def fullColor(rgb):
         return ArturiaLights.mapToClosestHue(rgb, sat=1.0, value=0.2, maxrgb=127)
+
+    @staticmethod
+    def getPadLedId(button_id):
+        MIDI_DRUM_PAD_DATA1_MIN = 36
+
+        if MKII_88_KEYBOARD:
+            # On 88 keyboard, the button IDs are flipped:
+            # 0x30, 0x31, 0x32, 0x33
+            # 0x2C, 0x2D, 0x2E, 0x2F
+            # 0x28, 0x29, 0x30, 0x31
+            # 0x24, 0x25, 0x26, 0x27
+            idx = button_id - MIDI_DRUM_PAD_DATA1_MIN
+            col = idx % 4
+            row = 3 - (idx // 4)
+            return ArturiaLights.MATRIX_IDS_PAD[row][col]
+        return button_id - MIDI_DRUM_PAD_DATA1_MIN + ArturiaLights.MATRIX_IDS_PAD[0][0]
+
 
     def SetPadLights(self, matrix_values, rgb=False):
         """ Set the pad lights given a matrix of color values to set the pad with.

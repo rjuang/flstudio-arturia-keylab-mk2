@@ -87,7 +87,7 @@ def OnLongPressDrumPad(note):
 def BlinkLight(note):
     global _pad_recording_led, _pad_recording_task
     if _recorder.IsRecording():
-        led_id = note - MIDI_DRUM_PAD_DATA1_MIN + ArturiaLights.MATRIX_IDS_PAD[0][0]
+        led_id = ArturiaLights.getPadLedId(note)
         _pad_recording_led = not _pad_recording_led
         _lights.SetLights({led_id: ArturiaLights.AsOnOffByte(_pad_recording_led)})
         _pad_recording_task = _scheduler.ScheduleTask(lambda: BlinkLight(note), delay=500)
@@ -120,7 +120,7 @@ def OnMidiMsg(event):
                 if should_color_pads:
                     channel_idx = channels.selectedChannel()
                     color_val = ArturiaLights.fullColor(channels.getChannelColor(channel_idx))
-                    led_id = note - MIDI_DRUM_PAD_DATA1_MIN + ArturiaLights.MATRIX_IDS_PAD[0][0]
+                    led_id = ArturiaLights.getPadLedId(note)
                     _lights.SetLights({led_id: color_val}, rgb=True)
 
     elif event.status == MIDI_DRUM_PAD_STATUS_OFF:
@@ -139,7 +139,7 @@ def OnMidiMsg(event):
             if should_color_pads:
                 channel_idx = channels.selectedChannel()
                 color_val = ArturiaLights.fadedColor(channels.getChannelColor(channel_idx))
-                led_id = note - MIDI_DRUM_PAD_DATA1_MIN + ArturiaLights.MATRIX_IDS_PAD[0][0]
+                led_id = ArturiaLights.getPadLedId(note)
                 _lights.SetLights({led_id: color_val}, rgb=True)
 
     elif 128 <= event.status <= 159:  # Midi note on
