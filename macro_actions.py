@@ -109,7 +109,7 @@ class Actions:
                 # Public rant: FL Studio does not have a way to send modifier keys in their shortcut, nor any way to
                 # access menu items via API. This is a hacky way to do this.
                 Actions._open_app_menu()
-                time.sleep(0.1)
+                time.sleep(0.3)
                 Actions._navigate_to_menu('view', 'browser')
                 Actions._press_enter()
             else:
