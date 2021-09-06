@@ -5,6 +5,7 @@ import midi
 import transport
 import ui
 
+import time
 
 SCRIPT_VERSION = general.getVersion()
 
@@ -108,6 +109,7 @@ class Actions:
                 # Public rant: FL Studio does not have a way to send modifier keys in their shortcut, nor any way to
                 # access menu items via API. This is a hacky way to do this.
                 Actions._open_app_menu()
+                time.sleep(0.1)
                 Actions._navigate_to_menu('view', 'browser')
                 Actions._press_enter()
             else:
@@ -150,7 +152,6 @@ class Actions:
         if not channel_rack_visible:
             ui.showWindow(midi.widChannelRack)
         ui.setFocused(midi.widChannelRack)
-
         transport.globalTransport(midi.FPT_Menu, 1)
         if not channel_rack_visible:
             ui.hideWindow(midi.widChannelRack)
