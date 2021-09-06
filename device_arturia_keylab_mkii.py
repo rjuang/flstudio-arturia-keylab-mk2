@@ -1,6 +1,7 @@
 # name=Arturia Keylab mkII DAW (MIDIIN2/MIDIOUT2)
 # url=https://github.com/rjuang/flstudio-arturia-keylab-mk2
 # receiveFrom=Arturia Keylab mkII (MIDI)
+import version
 from arturia import ArturiaController
 from arturia_processor import ArturiaMidiProcessor
 
@@ -23,14 +24,14 @@ _payload_buffer = []
 
 def OnInit():
     global _controller
-    print('Loaded MIDI script for Arturia Keylab mkII (ver %d)' % config.CHANGE_DATE)
+    print('Loaded MIDI script for Arturia Keylab mkII (ver %d)' % version.CHANGE_DATE)
 
     _controller.Sync(0xFFFF)
     _controller.paged_display().SetPageLines('welcome', line1='Connected to ', line2='   FL Studio')
     _controller.paged_display().SetActivePage('main')
     _controller.paged_display().SetActivePage('welcome', expires=WELCOME_DISPLAY_INTERVAL_MS)
 
-    ui.setHintMsg('Script version: %d' % config.CHANGE_DATE)
+    ui.setHintMsg('Script version: %d' % version.CHANGE_DATE)
 
 def OnDeInit():
     print('Unloaading plugin...')

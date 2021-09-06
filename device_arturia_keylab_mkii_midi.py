@@ -7,6 +7,7 @@ import device
 
 import arturia_leds
 import arturia_midi
+import version
 
 from arturia_leds import ArturiaLights
 from arturia_scheduler import Scheduler
@@ -49,7 +50,7 @@ _drop_note = None
 
 
 def OnInit():
-    print('Loaded MIDI script for Arturia Keylab mkII MIDI (ver %d)' % config.CHANGE_DATE)
+    print('Loaded MIDI script for Arturia Keylab mkII MIDI (ver %d)' % version.CHANGE_DATE)
 
 
 def OnRefresh(flags):
