@@ -32,6 +32,8 @@ def OnInit():
 
     ui.setHintMsg('Script version: %d' % config.CHANGE_DATE)
 
+def OnDeInit():
+    print('Unloaading plugin...')
 
 def OnIdle():
     _controller.Idle()

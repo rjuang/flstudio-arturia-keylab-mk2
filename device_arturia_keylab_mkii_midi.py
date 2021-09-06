@@ -176,3 +176,6 @@ def OnMidiMsg(event):
     if log_msg:
         log('midi', 'status: %d, data1: %d, data2: %d handled: %s' % (event.status, event.data1, event.data2, str(event.handled)))
 
+
+def OnDeInit():
+    print('Unloaading plugin...')
