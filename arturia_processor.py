@@ -4,6 +4,7 @@ import arrangement
 import channels
 
 import arturia_leds
+import arturia_macros
 import arturia_midi
 import config
 import debug
@@ -30,21 +31,6 @@ if SCRIPT_VERSION >= 8:
 SS_STOP = 0
 # Event code indicating start start event
 SS_START = 2
-
-# Bitmask for loop button
-LOOP_BUTTON_MASK = 1
-# Bitmask for record button
-REC_BUTTON_MASK = 2
-# Bitmask for play button
-PLAY_BUTTON_MASK = 4
-# Bitmask for stop button
-STOP_BUTTON_MASK = 8
-# Bitmask for left nav arrow
-LEFT_BUTTON_MASK = 16
-# Bitmask for right nav arrow
-RIGHT_BUTTON_MASK = 32
-# Bitmask for save button (song/pattern button)
-SAVE_BUTTON_MASK = 64
 
 
 class ArturiaMidiProcessor:
@@ -153,6 +139,7 @@ class ArturiaMidiProcessor:
         self._punched = False
         # Indicates pad is recording
         self._is_pad_recording = False
+        self._macros = arturia_macros.ArturiaMacroBank()
 
     def circular(self, low, high, x):
         if x > high:
@@ -420,22 +407,24 @@ class ArturiaMidiProcessor:
     def OnNavigationKnobTurned(self, event):
         delta = self._get_knob_delta(event)
         debug.log('OnNavigationKnob', 'Delta = %d' % delta, event=event)
-        if self._button_mode == SAVE_BUTTON_MASK:
+        if self._button_mode == arturia_macros.SAVE_BUTTON:
             self._change_playlist_track(delta)
         elif self._button_mode or self._locked_mode:
-            if self._button_mode == LOOP_BUTTON_MASK or self._locked_mode == LOOP_BUTTON_MASK:
+            if self._button_mode == arturia_macros.LOOP_BUTTON or self._locked_mode == arturia_macros.LOOP_BUTTON:
                 transport.globalTransport(midi.FPT_HZoomJog, delta)
                 # Hack to adjust zoom so that it's centered on current time position.
                 transport.globalTransport(midi.FPT_Jog, 0)
-            elif self._button_mode == REC_BUTTON_MASK or self._locked_mode == REC_BUTTON_MASK:
+            elif self._button_mode == arturia_macros.REC_BUTTON or self._locked_mode == arturia_macros.REC_BUTTON:
                 self._horizontal_scroll(delta)
-            elif self._button_mode == PLAY_BUTTON_MASK:
+            elif self._button_mode == arturia_macros.PLAY_BUTTON:
                 transport.globalTransport(midi.FPT_VZoomJog, delta)
-            elif self._button_mode == STOP_BUTTON_MASK:
+            elif self._button_mode == arturia_macros.STOP_BUTTON:
                 transport.globalTransport(midi.FPT_Jog2, delta)
-            elif self._button_mode == LEFT_BUTTON_MASK:
-                ui.selectWindow(delta < 0)
-            elif self._button_mode == RIGHT_BUTTON_MASK:
+            elif self._button_mode == arturia_macros.LEFT_BUTTON:
+                delta = 0 if delta < 0 else 1
+                transport.globalTransport(midi.FPT_WindowJog, delta)
+            elif self._button_mode == arturia_macros.RIGHT_BUTTON:
+                delta = 0 if delta < 0 else 1
                 transport.globalTransport(midi.FPT_MixerWindowJog, delta)
             self._button_hold_action_committed = True
         else:
@@ -457,13 +446,13 @@ class ArturiaMidiProcessor:
         idx = event.controlNum - 16
         delta = self._get_knob_delta(event)
         self._button_hold_action_committed = True
-        if self._button_mode == LOOP_BUTTON_MASK or self._locked_mode == LOOP_BUTTON_MASK:
+        if self._button_mode == arturia_macros.LOOP_BUTTON or self._locked_mode == arturia_macros.LOOP_BUTTON:
             if idx <= 7:
                 factor = 24.0 * (2.0 ** (idx - 3))
                 ui.stripJog(int(delta * factor))
             elif idx == 8:
                 ui.stripJog(int(delta))
-        elif self._button_mode == REC_BUTTON_MASK or self._locked_mode == REC_BUTTON_MASK:
+        elif self._button_mode == arturia_macros.REC_BUTTON or self._locked_mode == arturia_macros.REC_BUTTON:
             if idx <= 6:
                 self._horizontal_scroll(delta, power=idx)
         elif self._button_mode == 0:
@@ -489,14 +478,14 @@ class ArturiaMidiProcessor:
 
     def OnTransportsStop(self, event):
         if self._is_pressed(event):
-            self._button_mode |= STOP_BUTTON_MASK
+            self._button_mode |= arturia_macros.STOP_BUTTON
             self._button_hold_action_committed = False
             debug.log('OnTransportsStop [down]', 'Dispatched', event=event)
             data1 = arturia_midi.INTER_SCRIPT_DATA1_BTN_DOWN_CMD
         else:
             debug.log('OnTransportsStop [up]', 'Dispatched', event=event)
             data1 = arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD
-            self._button_mode &= ~STOP_BUTTON_MASK
+            self._button_mode &= ~arturia_macros.STOP_BUTTON
             if not self._button_hold_action_committed:
                 self._controller.metronome().Reset()
                 transport.stop()
@@ -524,10 +513,10 @@ class ArturiaMidiProcessor:
     def OnTransportsPausePlay(self, event):
         debug.log('OnTransportsPausePlay', 'Dispatched', event=event)
         if self._is_pressed(event):
-            self._button_mode |= PLAY_BUTTON_MASK
+            self._button_mode |= arturia_macros.PLAY_BUTTON
             self._button_hold_action_committed = False
         else:
-            self._button_mode &= ~PLAY_BUTTON_MASK
+            self._button_mode &= ~arturia_macros.PLAY_BUTTON
             if self._button_hold_action_committed:
                 # Update event happened so do not process button release.
                 return
@@ -542,7 +531,7 @@ class ArturiaMidiProcessor:
     def OnTransportsRecord(self, event):
         if self._is_pressed(event):
             debug.log('OnTransportsRecord [down]', 'Dispatched', event=event)
-            self._button_mode |= REC_BUTTON_MASK
+            self._button_mode |= arturia_macros.REC_BUTTON
             self._button_hold_action_committed = False
             arturia_midi.dispatch_message_to_other_scripts(
                 arturia_midi.INTER_SCRIPT_STATUS_BYTE,
@@ -550,7 +539,7 @@ class ArturiaMidiProcessor:
                 event.controlNum)
         else:
             # Release event
-            self._button_mode &= ~REC_BUTTON_MASK
+            self._button_mode &= ~arturia_macros.REC_BUTTON
             arturia_midi.dispatch_message_to_other_scripts(
                 arturia_midi.INTER_SCRIPT_STATUS_BYTE,
                 arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD,
@@ -565,10 +554,10 @@ class ArturiaMidiProcessor:
     def OnTransportsLoop(self, event):
         debug.log('OnTransportsLoop', 'Dispatched', event=event)
         if self._is_pressed(event):
-            self._button_mode |= LOOP_BUTTON_MASK
+            self._button_mode |= arturia_macros.LOOP_BUTTON
             self._button_hold_action_committed = False
         else:
-            self._button_mode &= ~LOOP_BUTTON_MASK
+            self._button_mode &= ~arturia_macros.LOOP_BUTTON
             if self._button_hold_action_committed:
                 return
             transport.globalTransport(midi.FPT_LoopRecord, midi.FPT_LoopRecord, event.pmeFlags)
@@ -576,10 +565,10 @@ class ArturiaMidiProcessor:
     def OnGlobalSave(self, event):
         debug.log('OnGlobalSave', 'Dispatched', event=event)
         if self._is_pressed(event):
-            self._button_mode |= SAVE_BUTTON_MASK
+            self._button_mode |= arturia_macros.SAVE_BUTTON
             self._button_hold_action_committed = False
         else:
-            self._button_mode &= ~SAVE_BUTTON_MASK
+            self._button_mode &= ~arturia_macros.SAVE_BUTTON
             if not self._button_hold_action_committed:
                 transport.setLoopMode()
 
@@ -623,7 +612,7 @@ class ArturiaMidiProcessor:
     def OnTrackSolo(self, event):
         debug.log('OnTrackSolo', 'Dispatched', event=event)
         playlist_mode = self._navigation.GetMode() == 'Playlist Track'
-        if self._button_mode == SAVE_BUTTON_MASK or playlist_mode:
+        if self._button_mode == arturia_macros.SAVE_BUTTON or playlist_mode:
             playlist.soloTrack(self._current_playlist_track_index)
             status = playlist.isTrackSolo(self._current_playlist_track_index)
             self._display_playlist_track_op_hint("Solo Playlist: %d" % status)
@@ -634,7 +623,7 @@ class ArturiaMidiProcessor:
     def OnTrackMute(self, event):
         debug.log('OnTrackMute', 'Dispatched', event=event)
         playlist_mode = self._navigation.GetMode() == 'Playlist Track'
-        if self._button_mode == SAVE_BUTTON_MASK or playlist_mode:
+        if self._button_mode == arturia_macros.SAVE_BUTTON or playlist_mode:
             playlist.muteTrack(self._current_playlist_track_index)
             status = playlist.isTrackMuted(self._current_playlist_track_index)
             self._display_playlist_track_op_hint("Mute Playlist: %d" % status)
@@ -790,7 +779,7 @@ class ArturiaMidiProcessor:
     def OnTrackRead(self, event):
         debug.log('OnTrackRead', 'Dispatched', event=event)
         # Move to previous pattern (move up pattern list)
-        if self._button_mode == SAVE_BUTTON_MASK:
+        if self._button_mode == arturia_macros.SAVE_BUTTON:
             # Adjust track number.
             self._change_playlist_track(-1)
         else:
@@ -802,7 +791,7 @@ class ArturiaMidiProcessor:
     def OnTrackWrite(self, event):
         debug.log('OnTrackWrite', 'Dispatched', event=event)
         # Move to next pattern (move down pattern list)
-        if self._button_mode == SAVE_BUTTON_MASK:
+        if self._button_mode == arturia_macros.SAVE_BUTTON:
             # Adjust track number.
             self._change_playlist_track(1)
         else:
@@ -813,12 +802,12 @@ class ArturiaMidiProcessor:
 
     def OnNavigationLeft(self, event):
         if self._is_pressed(event):
-            if self._button_mode & RIGHT_BUTTON_MASK:
+            if self._button_mode & arturia_macros.RIGHT_BUTTON:
                 ui.escape()
                 self._button_hold_action_committed = True
                 return
 
-            if self._button_mode == SAVE_BUTTON_MASK:
+            if self._button_mode == arturia_macros.SAVE_BUTTON:
                 # Toggle visibility of mixer panel
                 is_visible = self._toggle_visibility(midi.widPianoRoll)
                 visible_str = 'VISIBLE' if is_visible else 'HIDDEN'
@@ -826,30 +815,30 @@ class ArturiaMidiProcessor:
                 self._button_hold_action_committed = True
                 return
 
-            self._button_mode |= LEFT_BUTTON_MASK
+            self._button_mode |= arturia_macros.LEFT_BUTTON
             self._button_hold_action_committed = False
         else:
-            self._button_mode &= ~LEFT_BUTTON_MASK
+            self._button_mode &= ~arturia_macros.LEFT_BUTTON
         self._detect_long_press(event, self.OnNavigationLeftShortPress, self.OnNavigationLeftLongPress,
                                 duration_ms=1000)
 
     def OnNavigationRight(self, event):
         if self._is_pressed(event):
-            if self._button_mode & LEFT_BUTTON_MASK:
+            if self._button_mode & arturia_macros.LEFT_BUTTON:
                 ui.escape()
                 self._button_hold_action_committed = True
                 return
 
-            if self._button_mode == SAVE_BUTTON_MASK:
+            if self._button_mode == arturia_macros.SAVE_BUTTON:
                 is_visible = self._toggle_visibility(midi.widPlaylist)
                 visible_str = 'VISIBLE' if is_visible else 'HIDDEN'
                 self._display_hint(line1='Playlist', line2=visible_str)
                 self._button_hold_action_committed = True
                 return
-            self._button_mode |= RIGHT_BUTTON_MASK
+            self._button_mode |= arturia_macros.RIGHT_BUTTON
             self._button_hold_action_committed = False
         else:
-            self._button_mode &= ~RIGHT_BUTTON_MASK
+            self._button_mode &= ~arturia_macros.RIGHT_BUTTON
         self._detect_long_press(event, self.OnNavigationRightShortPress, self.OnNavigationRightLongPress,
                                 duration_ms=1000)
 
@@ -889,11 +878,11 @@ class ArturiaMidiProcessor:
         debug.log('OnNavigationKnobPressed', 'Dispatched', event=event)
         self._button_hold_action_committed = True
         was_locked = self._locked_mode
-        if self._button_mode & LOOP_BUTTON_MASK:
-            self._locked_mode = LOOP_BUTTON_MASK
+        if self._button_mode & arturia_macros.LOOP_BUTTON:
+            self._locked_mode = arturia_macros.LOOP_BUTTON
             self._display_hint('Entering', 'Move Mode')
-        elif self._button_mode & REC_BUTTON_MASK:
-            self._locked_mode = REC_BUTTON_MASK
+        elif self._button_mode & arturia_macros.REC_BUTTON:
+            self._locked_mode = arturia_macros.REC_BUTTON
             self._display_hint('Entering', 'H. Scroll Mode')
         else:
             self._locked_mode = 0
@@ -935,7 +924,13 @@ class ArturiaMidiProcessor:
     def OnBankSelect(self, event):
         bank_index = event.controlNum - 24
         debug.log('OnBankSelect', 'Selected bank index=%d' % bank_index, event=event)
-        self._controller.encoders().ProcessBankSelection(bank_index)
+        if self._button_mode:
+            debug.log('OnBankSelect', 'Dispatching macro. Mod=%d, index=%d' % (self._button_mode, bank_index),
+                      event=event)
+            self._macros.on_channel_bank(self._button_mode, bank_index)
+            self._button_hold_action_committed = True
+        else:
+            self._controller.encoders().ProcessBankSelection(bank_index)
 
     def OnStartOrEndSliderEvent(self, event):
         debug.log('OnStartOrEndSliderEvent', 'Dispatched', event=event)
