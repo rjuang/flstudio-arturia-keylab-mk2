@@ -2,6 +2,7 @@
 import channels
 import general
 import midi
+import patterns
 import transport
 import ui
 
@@ -40,34 +41,56 @@ _MENU_LEFT_COUNT = {
     'help': 1,
 }
 
-# Number of times the down arrow needs to be clicked to reach the menu item.
-_MENU_DOWN_COUNT = {
+# Number of times the up arrow needs to be clicked to reach the menu item.
+# NOTE: Do not use "down" arrow because some menus are dynamically populated. Pressing up skips the dynamic portion of
+# the menu.
+_MENU_UP_COUNT = {
     # View menu
-    'playlist': 1,
-    'piano roll': 2,
-    'channel rack': 3,
-    'mixer': 4,
-    'browser': 5,
-    'project picker': 6,
-    'plugin picker': 7,
-    'tempo tapper': 8,
-    'touch controller': 9,
-    'script output': 10,
-    'toolbars': 11,
-    'tests': 12,
+    'playlist': 25,
+    'piano roll': 24,
+    'channel rack': 23,
+    'mixer': 22,
+    'browser': 21,
+    'project picker': 20,
+    'plugin picker': 19,
+    'tempo tapper': 18,
+    'touch controller': 17,
+    'script output': 16,
+    'toolbars': 15,
+    'tests': 14,
     'plugin performance monitor': 13,
-    'close all windows': 14,
-    'close all plugin windows': 15,
-    'close all unfocused windows': 16,
-    'align all channel editors': 17,
-    'arrange windows': 18,
-    'background': 19,
-    'undo history': 20,
-    'patterns': 21,
-    'generators in use': 22,
-    'effects in use': 23,
-    'remote control': 24,
-    'plugin database': 25,
+    'close all windows': 12,
+    'close all plugin windows': 11,
+    'close all unfocused windows': 10,
+    'align all channel editors': 9,
+    'arrange windows': 8,
+    'background': 7,
+    'undo history': 6,
+    'patterns': 5,
+    'generators in use': 4,
+    'effects in use': 3,
+    'remote control': 2,
+    'plugin database': 1,
+
+    # Patterns menu
+    'find first empty': 18,
+    'find next empty': 17,
+    'find next empty (no naming)': 16,
+    'select in playlist': 15,
+    'rename and color': 14,
+    'random color': 13,
+    'open in project browser': 12,
+    'set time signature': 11,
+    'transpose': 10,
+    'insert one': 9,
+    'clone': 8,
+    'delete': 7,
+    'move up': 6,
+    'move down': 5,
+    'split by channel': 4,
+    'quick render as audio clip': 3,
+    'render as audio clip': 2,
+    'render and replace': 1,
 }
 
 
@@ -109,7 +132,6 @@ class Actions:
                 # Public rant: FL Studio does not have a way to send modifier keys in their shortcut, nor any way to
                 # access menu items via API. This is a hacky way to do this.
                 Actions._open_app_menu()
-                time.sleep(0.3)
                 Actions._navigate_to_menu('view', 'browser')
                 Actions._press_enter()
             else:
@@ -135,6 +157,49 @@ class Actions:
         general.undoDown()
 
     @staticmethod
+    def close_all_plugin_windows():
+        """Close all plugin"""
+        Actions._open_app_menu()
+        Actions._navigate_to_menu('view', 'close all plugin windows')
+        Actions._press_enter()
+
+    @staticmethod
+    def cycle_active_window():
+        """Cycle active win"""
+        ui.selectWindow(False)
+
+    @staticmethod
+    def name_first_empty_pattern():
+        """First empty pat"""
+        Actions._open_app_menu()
+        Actions._navigate_to_menu('patterns', 'find first empty')
+        Actions._press_enter()
+
+    @staticmethod
+    def name_next_empty_pattern():
+        """Next empty pat"""
+        transport.globalTransport(midi.FPT_F4, 1)
+
+    @staticmethod
+    def rename_and_color():
+        """Rename & color"""
+        transport.globalTransport(midi.FPT_F2, 1)
+
+    @staticmethod
+    def toggle_script_output_visibility():
+        """Script output"""
+        Actions._open_app_menu()
+        Actions._navigate_to_menu('view', 'script output')
+        Actions._press_enter()
+
+    @staticmethod
+    def clone_pattern():
+        """Clone pattern"""
+        Actions._open_app_menu()
+        Actions._navigate_to_menu('patterns', 'clone')
+        Actions._press_enter()
+
+    @staticmethod
     def noop():
         """Not assigned"""
         # Do nothing
@@ -148,17 +213,29 @@ class Actions:
     def _open_app_menu():
         # FPT_Menu needs to be triggered when channel rack in focus in order to bring up the app menu.
         # Save the visibility state of the channel rack and restore at the end.
+        ui.closeActivePopupMenu()
         channel_rack_visible = ui.getVisible(midi.widChannelRack)
-        if not channel_rack_visible:
-            ui.showWindow(midi.widChannelRack)
+        ui.showWindow(midi.widChannelRack)
         ui.setFocused(midi.widChannelRack)
         transport.globalTransport(midi.FPT_Menu, 1)
         if not channel_rack_visible:
             ui.hideWindow(midi.widChannelRack)
+        # Give some time for popup to appear
+        time.sleep(0.2)
+        while not ui.isInPopupMenu():
+            time.sleep(0.05)
 
     @staticmethod
     def _navigate_to_menu(menu, item):
+        restore_pattern = None
+        if menu == 'patterns':
+            # Need to jump to first pattern and restore at end
+            restore_pattern = patterns. patternNumber()
+            patterns.jumpToPattern(1)
         for _ in range(_MENU_LEFT_COUNT[menu]):
             transport.globalTransport(midi.FPT_Left, 1)
-        for _ in range(_MENU_DOWN_COUNT[item]):
-            transport.globalTransport(midi.FPT_Down, 1)
+        for _ in range(_MENU_UP_COUNT[item]):
+            transport.globalTransport(midi.FPT_Up, 1)
+        if restore_pattern:
+            patterns.jumpToPattern(restore_pattern)
+

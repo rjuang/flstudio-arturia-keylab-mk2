@@ -18,14 +18,14 @@ DEFAULT_MACRO_MAP = {
     (LOOP_BUTTON, 7): Actions.toggle_plugin_visibility,
 
     # Record + Bank button
-    (REC_BUTTON, 0): Actions.noop,
-    (REC_BUTTON, 1): Actions.noop,
-    (REC_BUTTON, 2): Actions.noop,
-    (REC_BUTTON, 3): Actions.noop,
-    (REC_BUTTON, 4): Actions.noop,
-    (REC_BUTTON, 5): Actions.noop,
+    (REC_BUTTON, 0): Actions.close_all_plugin_windows,
+    (REC_BUTTON, 1): Actions.cycle_active_window,
+    (REC_BUTTON, 2): Actions.name_first_empty_pattern,
+    (REC_BUTTON, 3): Actions.name_next_empty_pattern,
+    (REC_BUTTON, 4): Actions.rename_and_color,
+    (REC_BUTTON, 5): Actions.clone_pattern,
     (REC_BUTTON, 6): Actions.noop,
-    (REC_BUTTON, 7): Actions.noop,
+    (REC_BUTTON, 7): Actions.toggle_script_output_visibility,
 
     # Play + Bank button
     (PLAY_BUTTON, 0): Actions.noop,

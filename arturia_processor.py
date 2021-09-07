@@ -496,10 +496,8 @@ class ArturiaMidiProcessor:
             event.controlNum)
 
     def _show_and_focus(self, window):
-        if not ui.getVisible(window):
-            ui.showWindow(window)
-        if not ui.getFocused(window):
-            ui.setFocused(window)
+        ui.showWindow(window)
+        ui.setFocused(window)
 
     def _toggle_visibility(self, window):
         if not ui.getVisible(window):
@@ -718,11 +716,14 @@ class ArturiaMidiProcessor:
     def OnTrackRecordShortPress(self, event):
         debug.log('OnTrackRecord Short', 'Dispatched', event=event)
         # Piano roll needs to be in focus to determine if a new pattern is needed
+        piano_roll_visible = ui.getVisible(midi.widPianoRoll)
         self._show_and_focus(midi.widPianoRoll)
         if arrangement.selectionEnd() > arrangement.selectionStart():
             self._new_pattern_from_selected()
         else:
             self._new_empty_pattern()
+        if not piano_roll_visible:
+            ui.hideWindow(midi.widPianoRoll)
 
     def OnTrackRecordLongPress(self, event):
         debug.log('OnTrackRecord Long', 'Dispatched', event=event)
