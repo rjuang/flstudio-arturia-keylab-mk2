@@ -885,6 +885,9 @@ class ArturiaMidiProcessor:
         elif self._button_mode & arturia_macros.REC_BUTTON:
             self._locked_mode = arturia_macros.REC_BUTTON
             self._display_hint('Entering', 'H. Scroll Mode')
+        elif self._button_mode:
+            self._locked_mode = self._button_mode
+            self._display_hint('Locking', 'Modifier Button')
         else:
             self._locked_mode = 0
             if not was_locked:
@@ -925,10 +928,10 @@ class ArturiaMidiProcessor:
     def OnBankSelect(self, event):
         bank_index = event.controlNum - 24
         debug.log('OnBankSelect', 'Selected bank index=%d' % bank_index, event=event)
-        if self._button_mode:
+        if self._button_mode or self._locked_mode:
             debug.log('OnBankSelect', 'Dispatching macro. Mod=%d, index=%d' % (self._button_mode, bank_index),
                       event=event)
-            self._macros.on_channel_bank(self._button_mode, bank_index)
+            self._macros.on_channel_bank(self._button_mode | self._locked_mode, bank_index)
             self._button_hold_action_committed = True
         else:
             self._controller.encoders().ProcessBankSelection(bank_index)
