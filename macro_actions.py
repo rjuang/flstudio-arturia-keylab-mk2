@@ -91,6 +91,18 @@ _MENU_UP_COUNT = {
     'quick render as audio clip': 3,
     'render as audio clip': 2,
     'render and replace': 1,
+
+    # Tools menu
+    'browser smart find': -1,
+    'one-click audio recording': -2,
+    'macros': -3,
+    'riff machine': -4,
+    'control creator': -5,
+
+    'next to last tweaked': 1,
+    'last tweaked': 2,
+    'clear log': 3,
+    'dump score log to selected pattern': 4,
 }
 
 
@@ -274,6 +286,45 @@ class Actions:
         channels.selectChannel(select, 1)
 
     @staticmethod
+    def start_edison_recording():
+        """Start Edison Rec"""
+        Actions._open_app_menu()
+        Actions._navigate_to_menu('tools', 'one-click audio recording')
+        Actions.enter()
+
+    @staticmethod
+    def random_pattern_generator():
+        """Random pattern"""
+        Actions._open_app_menu()
+        Actions._navigate_to_menu('tools', 'riff machine')
+        Actions.enter()
+
+    @staticmethod
+    def toggle_start_on_input():
+        """Start on input"""
+        transport.globalTransport(midi.FPT_WaitForInput, 1)
+
+    @staticmethod
+    def toggle_metronome():
+        """Metronome"""
+        transport.globalTransport(midi.FPT_Metronome, 1)
+
+    @staticmethod
+    def toggle_loop_recording():
+        """Loop recording"""
+        transport.globalTransport(midi.FPT_LoopRecord, 1)
+
+    @staticmethod
+    def toggle_step_edit():
+        """Step edit"""
+        transport.globalTransport(midi.FPT_StepEdit, 1)
+
+    @staticmethod
+    def toggle_start_count():
+        """Start Count"""
+        transport.globalTransport(midi.FPT_CountDown, 1)
+
+    @staticmethod
     def noop():
         """Not assigned"""
         # Do nothing
@@ -304,9 +355,11 @@ class Actions:
             # Need to jump to first pattern and restore at end
             restore_pattern = patterns. patternNumber()
             patterns.jumpToPattern(1)
+        vertical_count = _MENU_UP_COUNT[item]
+        vertical_cmd = midi.FPT_Up if vertical_count > 0 else midi.FPT_Down
         for _ in range(_MENU_LEFT_COUNT[menu]):
             transport.globalTransport(midi.FPT_Left, 1)
-        for _ in range(_MENU_UP_COUNT[item]):
-            transport.globalTransport(midi.FPT_Up, 1)
+        for _ in range(abs(vertical_count)):
+            transport.globalTransport(vertical_cmd, 1)
         if restore_pattern:
             patterns.jumpToPattern(restore_pattern)
