@@ -139,7 +139,7 @@ class ArturiaMidiProcessor:
         self._punched = False
         # Indicates pad is recording
         self._is_pad_recording = False
-        self._macros = arturia_macros.ArturiaMacroBank()
+        self._macros = arturia_macros.ArturiaMacroBank(display_fn=self._display_hint)
 
     def circular(self, low, high, x):
         if x > high:

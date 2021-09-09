@@ -133,7 +133,7 @@ class Actions:
                 # access menu items via API. This is a hacky way to do this.
                 Actions._open_app_menu()
                 Actions._navigate_to_menu('view', 'browser')
-                Actions._press_enter()
+                Actions.enter()
             else:
                 ui.showWindow(midi.widBrowser)
                 ui.setFocused(midi.widBrowser)
@@ -161,7 +161,7 @@ class Actions:
         """Close all plugin"""
         Actions._open_app_menu()
         Actions._navigate_to_menu('view', 'close all plugin windows')
-        Actions._press_enter()
+        Actions.enter()
 
     @staticmethod
     def cycle_active_window():
@@ -173,7 +173,7 @@ class Actions:
         """First empty pat"""
         Actions._open_app_menu()
         Actions._navigate_to_menu('patterns', 'find first empty')
-        Actions._press_enter()
+        Actions.enter()
 
     @staticmethod
     def name_next_empty_pattern():
@@ -190,24 +190,80 @@ class Actions:
         """Script output"""
         Actions._open_app_menu()
         Actions._navigate_to_menu('view', 'script output')
-        Actions._press_enter()
+        Actions.enter()
 
     @staticmethod
     def clone_pattern():
         """Clone pattern"""
         Actions._open_app_menu()
         Actions._navigate_to_menu('patterns', 'clone')
-        Actions._press_enter()
+        Actions.enter()
+
+    @staticmethod
+    def enter():
+        """Press enter"""
+        ui.enter()
+
+    @staticmethod
+    def escape():
+        """Press escape"""
+        ui.escape()
+
+    @staticmethod
+    def toggleSnap():
+        """Toggle snap"""
+        ui.snapOnOff()
+
+    @staticmethod
+    def cut():
+        """Cut"""
+        ui.cut()
+
+    @staticmethod
+    def copy():
+        """Copy"""
+        ui.copy()
+
+    @staticmethod
+    def paste():
+        """Paste"""
+        ui.paste()
+
+    @staticmethod
+    def delete():
+        """Delete"""
+        ui.delete()
+
+    @staticmethod
+    def insert():
+        """Insert"""
+        ui.insert()
+
+    @staticmethod
+    def up():
+        """Press up"""
+        ui.up()
+
+    @staticmethod
+    def down():
+        """Press down"""
+        ui.down()
+
+    @staticmethod
+    def left():
+        """Press left"""
+        ui.left()
+
+    @staticmethod
+    def right():
+        """Press right"""
+        ui.right()
 
     @staticmethod
     def noop():
         """Not assigned"""
         # Do nothing
         pass
-
-    @staticmethod
-    def _press_enter():
-        transport.globalTransport(midi.FPT_Enter, 1)
 
     @staticmethod
     def _open_app_menu():
@@ -222,7 +278,9 @@ class Actions:
             ui.hideWindow(midi.widChannelRack)
         # Give some time for popup to appear
         time.sleep(0.2)
-        while not ui.isInPopupMenu():
+        timeout_time = time.monotonic() + 1
+        # Avoid exceed waiting more than 1 second
+        while not ui.isInPopupMenu() and time.monotonic() < timeout_time:
             time.sleep(0.05)
 
     @staticmethod
@@ -238,4 +296,3 @@ class Actions:
             transport.globalTransport(midi.FPT_Up, 1)
         if restore_pattern:
             patterns.jumpToPattern(restore_pattern)
-
