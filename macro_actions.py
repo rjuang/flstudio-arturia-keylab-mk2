@@ -325,6 +325,26 @@ class Actions:
         transport.globalTransport(midi.FPT_CountDown, 1)
 
     @staticmethod
+    def toggle_overdub():
+        """Toggle Overdub"""
+        transport.globalTransport(midi.FPT_Overdub, 1)
+
+    @staticmethod
+    def tap_tempo():
+        """Tap tempo"""
+        transport.globalTransport(midi.FPT_TapTempo, 1)
+
+    @staticmethod
+    def open_menu():
+        """Open menu"""
+        transport.globalTransport(midi.FPT_Menu, 1)
+
+    @staticmethod
+    def item_menu():
+        """Item menu"""
+        transport.globalTransport(midi.FPT_ItemMenu, 1)
+
+    @staticmethod
     def noop():
         """Not assigned"""
         # Do nothing
