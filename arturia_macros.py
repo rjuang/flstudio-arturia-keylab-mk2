@@ -30,8 +30,8 @@ DEFAULT_MACRO_MAP = {
     (REC_BUTTON, 7): Actions.escape,
 
     # Play + Bank button
-    (PLAY_BUTTON, 0): Actions.noop,
-    (PLAY_BUTTON, 1): Actions.noop,
+    (PLAY_BUTTON, 0): Actions.channel_rack_up,
+    (PLAY_BUTTON, 1): Actions.channel_rack_down,
     (PLAY_BUTTON, 2): Actions.noop,
     (PLAY_BUTTON, 3): Actions.noop,
     (PLAY_BUTTON, 4): Actions.noop,

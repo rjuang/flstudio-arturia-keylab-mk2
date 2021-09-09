@@ -260,6 +260,20 @@ class Actions:
         ui.right()
 
     @staticmethod
+    def channel_rack_up():
+        """Channelrack up"""
+        select = min(max(0, channels.channelNumber() - 1), channels.channelCount() - 1)
+        channels.deselectAll()
+        channels.selectChannel(select, 1)
+
+    @staticmethod
+    def channel_rack_down():
+        """Channelrack down"""
+        select = min(max(0, channels.channelNumber() + 1), channels.channelCount() - 1)
+        channels.deselectAll()
+        channels.selectChannel(select, 1)
+
+    @staticmethod
     def noop():
         """Not assigned"""
         # Do nothing
