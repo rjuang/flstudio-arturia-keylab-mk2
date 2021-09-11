@@ -1,4 +1,6 @@
 """ Defines all constants and available actions that can be linked to a macro button. """
+import _random
+
 import channels
 import general
 import midi
@@ -117,6 +119,10 @@ class Actions:
     plus bank button to display the doc-string to the user. As such, try to limit doc strings to 16-chars for future
     help-system implementation.
     """
+
+    RANDOM_GENERATOR = _random.Random()
+
+    # ---------------------- AVAILABLE ACTIONS --------------------------
     @staticmethod
     def toggle_playlist_visibility(channel_index):
         """Playlist"""
@@ -359,11 +365,57 @@ class Actions:
             transport.globalTransport(midi.FPT_MixerWindowJog, 1)
 
     @staticmethod
+    def sync_all_colors(channel_index):
+        """Sync all colors"""
+        num_channels = channels.channelCount()
+        for i in range(num_channels):
+            color = channels.getChannelColor(i)
+            mixer_index = channels.getTargetFxTrack(i)
+            if mixer_index <= 0:
+                # Nothing to sync
+                continue
+            mixer.setTrackColor(mixer_index, color)
+
+    @staticmethod
+    def sync_current_color(channel_index):
+        """Sync channel color"""
+        selected = channels.selectedChannel()
+        if selected < 0:
+            return
+        mixer_index = channels.getTargetFxTrack(selected)
+        if mixer_index <= 0:
+            return
+        color = channels.getChannelColor(selected)
+        mixer.setTrackColor(mixer_index, color)
+
+    @staticmethod
+    def random_color(channel_index):
+        """Random color"""
+        selected = channels.selectedChannel()
+        if selected < 0:
+            return
+        rgb = int(Actions.RANDOM_GENERATOR.random() * 16777215.0)
+        channels.setChannelColor(selected, rgb)
+
+    @staticmethod
     def noop(channel_index):
         """Not assigned"""
         # Do nothing
         pass
 
+    # ---------------------- ACTION TRANSFORMERS  --------------------------
+    @staticmethod
+    def execute_list(*args_fn, help=None):
+        """Combine multiple actions."""
+        def _execute_all_fn(channel_index):
+            for fn in args_fn:
+                fn(channel_index)
+        if help is None and args_fn:
+            help = args_fn[0].__doc__
+        _execute_all_fn.__doc__ = help
+        return _execute_all_fn
+
+    # ---------------------- HELPER METHODS  --------------------------
     @staticmethod
     def _enter():
         """Press enter"""

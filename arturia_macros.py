@@ -25,7 +25,7 @@ DEFAULT_MACRO_MAP = {
     (REC_BUTTON, 2): Actions.name_next_empty_pattern,
     (REC_BUTTON, 3): Actions.rename_and_color,
     (REC_BUTTON, 4): Actions.clone_pattern,
-    (REC_BUTTON, 5): Actions.noop,
+    (REC_BUTTON, 5): Actions.execute_list(Actions.random_color, Actions.sync_current_color),
     (REC_BUTTON, 6): Actions.enter,
     (REC_BUTTON, 7): Actions.escape,
 
