@@ -931,7 +931,8 @@ class ArturiaMidiProcessor:
         if self._button_mode or self._locked_mode:
             debug.log('OnBankSelect', 'Dispatching macro. Mod=%d, index=%d' % (self._button_mode, bank_index),
                       event=event)
-            self._macros.on_channel_bank(self._button_mode | self._locked_mode, bank_index)
+            channel_index = self._controller.encoders().GetBankChannelIndex(bank_index)
+            self._macros.on_channel_bank(self._button_mode | self._locked_mode, bank_index, channel_index)
             self._button_hold_action_committed = True
         else:
             self._controller.encoders().ProcessBankSelection(bank_index)

@@ -274,9 +274,12 @@ class ArturiaInputControls:
 
     def ProcessBankSelection(self, button_index):
         if self._current_mode != ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS:
-            self._select_one_channel(button_index + (8 * self._current_index_mixer))
+            self._select_one_channel(self.GetBankChannelIndex(button_index))
         else:
             self._process_plugin_button_event(button_index)
+
+    def GetBankChannelIndex(self, button_index):
+        return button_index + (8 * self._current_index_mixer)
 
     def StartOrEndSliderInput(self):
         pass

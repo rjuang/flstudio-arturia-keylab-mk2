@@ -50,14 +50,14 @@ DEFAULT_MACRO_MAP = {
     (STOP_BUTTON, 7): Actions.noop,
 
     # Nav Right arrow + Bank button
-    (RIGHT_BUTTON, 0): Actions.noop,
-    (RIGHT_BUTTON, 1): Actions.noop,
-    (RIGHT_BUTTON, 2): Actions.noop,
-    (RIGHT_BUTTON, 3): Actions.noop,
-    (RIGHT_BUTTON, 4): Actions.noop,
-    (RIGHT_BUTTON, 5): Actions.noop,
-    (RIGHT_BUTTON, 6): Actions.noop,
-    (RIGHT_BUTTON, 7): Actions.noop,
+    (RIGHT_BUTTON, 0): Actions.open_mixer_plugin,
+    (RIGHT_BUTTON, 1): Actions.open_mixer_plugin,
+    (RIGHT_BUTTON, 2): Actions.open_mixer_plugin,
+    (RIGHT_BUTTON, 3): Actions.open_mixer_plugin,
+    (RIGHT_BUTTON, 4): Actions.open_mixer_plugin,
+    (RIGHT_BUTTON, 5): Actions.open_mixer_plugin,
+    (RIGHT_BUTTON, 6): Actions.open_mixer_plugin,
+    (RIGHT_BUTTON, 7): Actions.open_mixer_plugin,
 
     # Nav Left arrow + Bank button
     (LEFT_BUTTON, 0): Actions.noop,
@@ -104,7 +104,7 @@ class ArturiaMacroBank:
     def _is_help_request(self, modifier_mask):
         return SAVE_BUTTON & modifier_mask
 
-    def on_channel_bank(self, modifier_mask, bank_index):
+    def on_channel_bank(self, modifier_mask, bank_index, channel_index):
         self._lock.acquire()
         try:
             help_request = self._is_help_request(modifier_mask)
@@ -117,6 +117,6 @@ class ArturiaMacroBank:
                     self._display_fn(action, doc_str)
                     ui.setHintMsg('[%s] %s' % (action, doc_str))
                 if not help_request:
-                    self._macro_map[key]()
+                    self._macro_map[key](channel_index)
         finally:
             self._lock.release()

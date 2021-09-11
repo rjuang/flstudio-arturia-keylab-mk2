@@ -2,6 +2,7 @@
 import channels
 import general
 import midi
+import mixer
 import patterns
 import transport
 import ui
@@ -9,6 +10,9 @@ import ui
 import time
 
 SCRIPT_VERSION = general.getVersion()
+
+if SCRIPT_VERSION >= 8:
+    import plugins
 
 # These represent the bit in which the button must be held.
 # For a macro that requires two modifiers to be held, simply add the constants.
@@ -114,27 +118,27 @@ class Actions:
     help-system implementation.
     """
     @staticmethod
-    def toggle_playlist_visibility():
+    def toggle_playlist_visibility(channel_index):
         """Playlist"""
         transport.globalTransport(midi.FPT_F5, 1)
 
     @staticmethod
-    def toggle_channel_rack_visibility():
+    def toggle_channel_rack_visibility(channel_index):
         """Channel Rack"""
         transport.globalTransport(midi.FPT_F6, 1)
 
     @staticmethod
-    def toggle_piano_roll_visibility():
+    def toggle_piano_roll_visibility(channel_index):
         """Piano Roll"""
         transport.globalTransport(midi.FPT_F7, 1)
 
     @staticmethod
-    def toggle_mixer_visibility():
+    def toggle_mixer_visibility(channel_index):
         """Toggle mixer"""
         transport.globalTransport(midi.FPT_F9, 1)
 
     @staticmethod
-    def toggle_browser_visibility():
+    def toggle_browser_visibility(channel_index):
         """Toggle browser"""
         if ui.getVisible(midi.widBrowser):
             ui.hideWindow(midi.widBrowser)
@@ -145,13 +149,13 @@ class Actions:
                 # access menu items via API. This is a hacky way to do this.
                 Actions._open_app_menu()
                 Actions._navigate_to_menu('view', 'browser')
-                Actions.enter()
+                Actions._enter()
             else:
                 ui.showWindow(midi.widBrowser)
                 ui.setFocused(midi.widBrowser)
 
     @staticmethod
-    def toggle_plugin_visibility():
+    def toggle_plugin_visibility(channel_index):
         """Toggle plugin"""
         if SCRIPT_VERSION >= 9:
             channels.showCSForm(channels.channelNumber(), -1)
@@ -159,196 +163,222 @@ class Actions:
             channels.focusEditor(channels.channelNumber())
 
     @staticmethod
-    def undo():
+    def undo(channel_index):
         """Undo"""
         general.undoUp()
 
     @staticmethod
-    def redo():
+    def redo(channel_index):
         """Redo"""
         general.undoDown()
 
     @staticmethod
-    def close_all_plugin_windows():
+    def close_all_plugin_windows(channel_index):
         """Close all plugin"""
         Actions._open_app_menu()
         Actions._navigate_to_menu('view', 'close all plugin windows')
-        Actions.enter()
+        Actions._enter()
 
     @staticmethod
-    def cycle_active_window():
+    def cycle_active_window(channel_index):
         """Cycle active win"""
         ui.selectWindow(False)
 
     @staticmethod
-    def name_first_empty_pattern():
+    def name_first_empty_pattern(channel_index):
         """First empty pat"""
         Actions._open_app_menu()
         Actions._navigate_to_menu('patterns', 'find first empty')
-        Actions.enter()
+        Actions._enter()
 
     @staticmethod
-    def name_next_empty_pattern():
+    def name_next_empty_pattern(channel_index):
         """Next empty pat"""
         transport.globalTransport(midi.FPT_F4, 1)
 
     @staticmethod
-    def rename_and_color():
+    def rename_and_color(channel_index):
         """Rename & color"""
         transport.globalTransport(midi.FPT_F2, 1)
 
     @staticmethod
-    def toggle_script_output_visibility():
+    def toggle_script_output_visibility(channel_index):
         """Script output"""
         Actions._open_app_menu()
         Actions._navigate_to_menu('view', 'script output')
-        Actions.enter()
+        Actions._enter()
 
     @staticmethod
-    def clone_pattern():
+    def clone_pattern(channel_index):
         """Clone pattern"""
         Actions._open_app_menu()
         Actions._navigate_to_menu('patterns', 'clone')
-        Actions.enter()
+        Actions._enter()
 
     @staticmethod
-    def enter():
+    def enter(channel_index):
         """Press enter"""
         ui.enter()
 
     @staticmethod
-    def escape():
+    def escape(channel_index):
         """Press escape"""
         ui.escape()
 
     @staticmethod
-    def toggleSnap():
+    def toggleSnap(channel_index):
         """Toggle snap"""
         ui.snapOnOff()
 
     @staticmethod
-    def cut():
+    def cut(channel_index):
         """Cut"""
         ui.cut()
 
     @staticmethod
-    def copy():
+    def copy(channel_index):
         """Copy"""
         ui.copy()
 
     @staticmethod
-    def paste():
+    def paste(channel_index):
         """Paste"""
         ui.paste()
 
     @staticmethod
-    def delete():
+    def delete(channel_index):
         """Delete"""
         ui.delete()
 
     @staticmethod
-    def insert():
+    def insert(channel_index):
         """Insert"""
         ui.insert()
 
     @staticmethod
-    def up():
+    def up(channel_index):
         """Press up"""
         ui.up()
 
     @staticmethod
-    def down():
+    def down(channel_index):
         """Press down"""
         ui.down()
 
     @staticmethod
-    def left():
+    def left(channel_index):
         """Press left"""
         ui.left()
 
     @staticmethod
-    def right():
+    def right(channel_index):
         """Press right"""
         ui.right()
 
     @staticmethod
-    def channel_rack_up():
+    def channel_rack_up(channel_index):
         """Channelrack up"""
         select = min(max(0, channels.channelNumber() - 1), channels.channelCount() - 1)
         channels.deselectAll()
         channels.selectChannel(select, 1)
 
     @staticmethod
-    def channel_rack_down():
+    def channel_rack_down(channel_index):
         """Channelrack down"""
         select = min(max(0, channels.channelNumber() + 1), channels.channelCount() - 1)
         channels.deselectAll()
         channels.selectChannel(select, 1)
 
     @staticmethod
-    def start_edison_recording():
+    def start_edison_recording(channel_index):
         """Start Edison Rec"""
         Actions._open_app_menu()
         Actions._navigate_to_menu('tools', 'one-click audio recording')
         Actions.enter()
 
     @staticmethod
-    def random_pattern_generator():
+    def random_pattern_generator(channel_index):
         """Random pattern"""
         Actions._open_app_menu()
         Actions._navigate_to_menu('tools', 'riff machine')
         Actions.enter()
 
     @staticmethod
-    def toggle_start_on_input():
+    def toggle_start_on_input(channel_index):
         """Start on input"""
         transport.globalTransport(midi.FPT_WaitForInput, 1)
 
     @staticmethod
-    def toggle_metronome():
+    def toggle_metronome(channel_index):
         """Metronome"""
         transport.globalTransport(midi.FPT_Metronome, 1)
 
     @staticmethod
-    def toggle_loop_recording():
+    def toggle_loop_recording(channel_index):
         """Loop recording"""
         transport.globalTransport(midi.FPT_LoopRecord, 1)
 
     @staticmethod
-    def toggle_step_edit():
+    def toggle_step_edit(channel_index):
         """Step edit"""
         transport.globalTransport(midi.FPT_StepEdit, 1)
 
     @staticmethod
-    def toggle_start_count():
+    def toggle_start_count(channel_index):
         """Start Count"""
         transport.globalTransport(midi.FPT_CountDown, 1)
 
     @staticmethod
-    def toggle_overdub():
+    def toggle_overdub(channel_index):
         """Toggle Overdub"""
         transport.globalTransport(midi.FPT_Overdub, 1)
 
     @staticmethod
-    def tap_tempo():
+    def tap_tempo(channel_index):
         """Tap tempo"""
         transport.globalTransport(midi.FPT_TapTempo, 1)
 
     @staticmethod
-    def open_menu():
+    def open_menu(channel_index):
         """Open menu"""
         transport.globalTransport(midi.FPT_Menu, 1)
 
     @staticmethod
-    def item_menu():
+    def item_menu(channel_index):
         """Item menu"""
         transport.globalTransport(midi.FPT_ItemMenu, 1)
 
     @staticmethod
-    def noop():
+    def open_mixer_plugin(channel_index):
+        """Open mixer plugin"""
+        if SCRIPT_VERSION < 8:
+            return Actions.noop
+        mixer_track_index = channel_index + 1
+        mixer.setTrackNumber(mixer_track_index, midi.curfxScrollToMakeVisible)
+        for i in range(Actions._num_effects(mixer_track_index)):
+            transport.globalTransport(midi.FPT_MixerWindowJog, 1)
+
+    @staticmethod
+    def noop(channel_index):
         """Not assigned"""
         # Do nothing
         pass
+
+    @staticmethod
+    def _enter():
+        """Press enter"""
+        ui.enter()
+
+    @staticmethod
+    def _num_effects(mixer_track_index):
+        cnt = 0
+        for i in range(10):
+            try:
+                if plugins.isValid(mixer_track_index, i):
+                    cnt += 1
+            except:
+                pass
+        return cnt
 
     @staticmethod
     def _open_app_menu():
