@@ -34,14 +34,14 @@ DEFAULT_MACRO_MAP = {
     (PLAY_BUTTON, 1): Actions.channel_rack_down,
     (PLAY_BUTTON, 2): Actions.noop,
     (PLAY_BUTTON, 3): Actions.noop,
-    (PLAY_BUTTON, 4): Actions.noop,
+    (PLAY_BUTTON, 4): Actions.duplicate,
     (PLAY_BUTTON, 5): Actions.pianoroll_quick_legato,
     (PLAY_BUTTON, 6): Actions.pianoroll_quick_quantize,
     (PLAY_BUTTON, 7): Actions.pianoroll_quick_quantize_start_times,
 
     # Stop + Bank button
     (STOP_BUTTON, 0): Actions.rewind_to_beginning,
-    (STOP_BUTTON, 1): Actions.noop,
+    (STOP_BUTTON, 1): Actions.toggle_select_all,
     (STOP_BUTTON, 2): Actions.noop,
     (STOP_BUTTON, 3): Actions.noop,
     (STOP_BUTTON, 4): Actions.noop,
@@ -60,7 +60,7 @@ DEFAULT_MACRO_MAP = {
     (RIGHT_BUTTON, 7): Actions.open_mixer_plugin,
 
     # Nav Left arrow + Bank button
-    (LEFT_BUTTON, 0): Actions.duplicate,
+    (LEFT_BUTTON, 0): Actions.noop,
     (LEFT_BUTTON, 1): Actions.noop,
     (LEFT_BUTTON, 2): Actions.noop,
     (LEFT_BUTTON, 3): Actions.noop,

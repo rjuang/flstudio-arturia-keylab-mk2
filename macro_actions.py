@@ -178,6 +178,8 @@ _PIANO_ROLL_MENU_DOWN_COUNT = {
     'mute': 17,
     'unmute': 18,
 
+     # Select menu
+    'select all': 1,
 }
 
 _PLAYLIST_MENU_DOWN_COUNT = {
@@ -224,6 +226,8 @@ _PLAYLIST_MENU_DOWN_COUNT = {
     'mute': 17,
     'unmute': 18,
 
+    # Select menu
+    'select all': 1,
 }
 
 
@@ -534,20 +538,31 @@ class Actions:
 
     @staticmethod
     def pianoroll_duplicate(channel_index):
+        """Duplicate pianoroll"""
         if ui.getFocused(midi.widPianoRoll) and ui.getVisible(midi.widPianoRoll):
             Actions._pianoroll_menu('edit', 'duplicate')
 
     @staticmethod
     def playlist_duplicate(channel_index):
+        """Duplicate playlist"""
         if ui.getFocused(midi.widPlaylist) and ui.getVisible(midi.widPlaylist):
             Actions._playlist_menu('edit', 'duplicate')
 
     @staticmethod
     def duplicate(channel_index):
+        """Duplicate"""
         if ui.getFocused(midi.widPlaylist) and ui.getVisible(midi.widPlaylist):
             Actions._playlist_menu('edit', 'duplicate')
         else:
             Actions._pianoroll_menu('edit', 'duplicate')
+
+    @staticmethod
+    def toggle_select_all(channel_index):
+        """Toggle Select All"""
+        if ui.getFocused(midi.widPlaylist) and ui.getVisible(midi.widPlaylist):
+            Actions._playlist_menu('select', 'select all')
+        elif ui.getFocused(midi.widPianoRoll) and ui.getVisible(midi.widPianoRoll):
+            Actions._pianoroll_menu('select', 'select all')
 
     @staticmethod
     def noop(channel_index):
@@ -656,7 +671,7 @@ class Actions:
         vertical_cmd = midi.FPT_Down if vertical_count > 0 else midi.FPT_Up
         for _ in range(abs(vertical_count)):
             transport.globalTransport(vertical_cmd, 1)
-        Actions._enter()
+        ui.right()
         time.sleep(0.2)
         vertical_count = _PIANO_ROLL_MENU_DOWN_COUNT[item]
         vertical_cmd = midi.FPT_Down if vertical_count > 0 else midi.FPT_Up
