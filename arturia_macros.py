@@ -60,7 +60,7 @@ DEFAULT_MACRO_MAP = {
     (RIGHT_BUTTON, 7): Actions.open_mixer_plugin,
 
     # Nav Left arrow + Bank button
-    (LEFT_BUTTON, 0): Actions.noop,
+    (LEFT_BUTTON, 0): Actions.duplicate,
     (LEFT_BUTTON, 1): Actions.noop,
     (LEFT_BUTTON, 2): Actions.noop,
     (LEFT_BUTTON, 3): Actions.noop,

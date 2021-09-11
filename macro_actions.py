@@ -110,7 +110,7 @@ _MENU_UP_COUNT = {
     'dump score log to selected pattern': 4,
 }
 
-_PIANO_ROLL_MENU_DOWN_COUNT = {
+_PIANO_ROLL_ITEM_MENU_DOWN_COUNT = {
     'riff machine': 1,
     'quick legato': 2,
     'articulate': 3,
@@ -129,6 +129,101 @@ _PIANO_ROLL_MENU_DOWN_COUNT = {
     'randomize': 16,
     'scale levels': 17,
     'lfo': 18,
+}
+
+_PIANO_ROLL_MENU_DOWN_COUNT = {
+    'file': -2,
+    'edit': -1,
+    'tools': 0,
+    'stamp': 1,
+    'view': 2,
+    'snap': 3,
+    'select': 4,
+    'group': 5,
+    'zoom': 6,
+    'time markers': 7,
+    'target channel': 8,
+    'target control': 9,
+    'auto smoothing': 10,
+    'preview notes during playback': 11,
+    'center': 12,
+    'detached': 13,
+    'pencil tool': -11,
+    'paint tool': -10,
+    'paint sequence tool': -9,
+    'delete tool': -8,
+    'mute tool': -7,
+    'slice tool': -6,
+    'select tool': -5,
+    'zoom tool': -4,
+    'playback tool': -3,
+
+    # Edit menu
+    'cut': 1,
+    'copy': 2,
+    'paste': 3,
+    'duplicate': 4,
+    'delete': 5,
+    'shift left': 6,
+    'shift right': 7,
+    'rotate left': 8,
+    'rotate right': 9,
+    'transpose up': 10,
+    'transpose down': 11,
+    'transpose one octave up': 12,
+    'transpose one octave down': 13,
+    'discard lengths': 14,
+    'allow resizing from left': 15,
+    'change color': 16,
+    'mute': 17,
+    'unmute': 18,
+
+}
+
+_PLAYLIST_MENU_DOWN_COUNT = {
+
+    'detached': -1,
+    'pencil tool': 1,
+    'paint tool': 2,
+    'delete tool': 3,
+    'mute tool': 4,
+    'slip tool': 5,
+    'slice tool': 6,
+    'select tool': 7,
+    'zoom tool': 8,
+    'playback tool': 9,
+    'edit': 10,
+    'tools': 11,
+    'view': 12,
+    'snap': 13,
+    'select': 14,
+    'group': 15,
+    'zoom': 16,
+    'time markers': 17,
+    'picker panel': 18,
+    'current clip source': 19,
+    'performance mode': 20,
+
+    # Edit menu
+    'cut': 1,
+    'copy': 2,
+    'paste': 3,
+    'duplicate': 4,
+    'delete': 5,
+    'shift left': 6,
+    'shift right': 7,
+    'rotate left': 8,
+    'rotate right': 9,
+    'transpose up': 10,
+    'transpose down': 11,
+    'transpose one octave up': 12,
+    'transpose one octave down': 13,
+    'discard lengths': 14,
+    'allow resizing from left': 15,
+    'change color': 16,
+    'mute': 17,
+    'unmute': 18,
+
 }
 
 
@@ -425,17 +520,34 @@ class Actions:
     @staticmethod
     def pianoroll_quick_legato(channel_index):
         """Quick legato"""
-        Actions._pianoroll_menu('quick legato')
+        Actions._pianoroll_item_menu('quick legato')
 
     @staticmethod
     def pianoroll_quick_quantize(channel_index):
         """Quick quantize"""
-        Actions._pianoroll_menu('quick quantize')
+        Actions._pianoroll_item_menu('quick quantize')
 
     @staticmethod
     def pianoroll_quick_quantize_start_times(channel_index):
         """Qck quantize start"""
-        Actions._pianoroll_menu('quick quantize start times')
+        Actions._pianoroll_item_menu('quick quantize start times')
+
+    @staticmethod
+    def pianoroll_duplicate(channel_index):
+        if ui.getFocused(midi.widPianoRoll) and ui.getVisible(midi.widPianoRoll):
+            Actions._pianoroll_menu('edit', 'duplicate')
+
+    @staticmethod
+    def playlist_duplicate(channel_index):
+        if ui.getFocused(midi.widPlaylist) and ui.getVisible(midi.widPlaylist):
+            Actions._playlist_menu('edit', 'duplicate')
+
+    @staticmethod
+    def duplicate(channel_index):
+        if ui.getFocused(midi.widPlaylist) and ui.getVisible(midi.widPlaylist):
+            Actions._playlist_menu('edit', 'duplicate')
+        else:
+            Actions._pianoroll_menu('edit', 'duplicate')
 
     @staticmethod
     def noop(channel_index):
@@ -509,7 +621,7 @@ class Actions:
             patterns.jumpToPattern(restore_pattern)
 
     @staticmethod
-    def _pianoroll_menu(item):
+    def _pianoroll_item_menu(item):
         ui.closeActivePopupMenu()
         last_visible = ui.getVisible(midi.widPianoRoll)
         # Need to reset focus state of piano roll to ensure item menu brought up
@@ -519,10 +631,65 @@ class Actions:
 
         transport.globalTransport(midi.FPT_ItemMenu, 1)
         time.sleep(0.2)
-        for _ in range(_PIANO_ROLL_MENU_DOWN_COUNT[item]):
+        for _ in range(_PIANO_ROLL_ITEM_MENU_DOWN_COUNT[item]):
             transport.globalTransport(midi.FPT_Down, 1)
         Actions._enter()
 
         if not last_visible:
             ui.hideWindow(midi.widPianoRoll)
 
+    @staticmethod
+    def _pianoroll_menu(menu, item):
+        ui.closeActivePopupMenu()
+        last_visible = ui.getVisible(midi.widPianoRoll)
+        # Need to reset focus state of piano roll to ensure item menu brought up
+        if not ui.getFocused(midi.widPianoRoll) or not last_visible:
+            ui.hideWindow(midi.widPianoRoll)
+            ui.showWindow(midi.widPianoRoll)
+            ui.setFocused(midi.widPianoRoll)
+        # Force copy so that item in clipboard.
+        ui.copy()
+        transport.globalTransport(midi.FPT_Menu, 1)
+        time.sleep(0.2)
+        transport.globalTransport(midi.FPT_Left, 1)
+        vertical_count = _PIANO_ROLL_MENU_DOWN_COUNT[menu]
+        vertical_cmd = midi.FPT_Down if vertical_count > 0 else midi.FPT_Up
+        for _ in range(abs(vertical_count)):
+            transport.globalTransport(vertical_cmd, 1)
+        Actions._enter()
+        time.sleep(0.2)
+        vertical_count = _PIANO_ROLL_MENU_DOWN_COUNT[item]
+        vertical_cmd = midi.FPT_Down if vertical_count > 0 else midi.FPT_Up
+        for _ in range(abs(vertical_count)):
+            transport.globalTransport(vertical_cmd, 1)
+        Actions._enter()
+        if not last_visible:
+            time.sleep(1)
+            ui.hideWindow(midi.widPianoRoll)
+
+    @staticmethod
+    def _playlist_menu(menu, item):
+        ui.closeActivePopupMenu()
+        last_visible = ui.getVisible(midi.widPlaylist)
+        # Need to reset focus state of piano roll to ensure item menu brought up
+        if not ui.getFocused(midi.widPlaylist) or not last_visible:
+            ui.hideWindow(midi.widPlaylist)
+            ui.showWindow(midi.widPlaylist)
+            ui.setFocused(midi.widPlaylist)
+        # Force copy so that item in clipboard.
+        ui.copy()
+        transport.globalTransport(midi.FPT_Menu, 1)
+        time.sleep(0.2)
+        vertical_count = _PLAYLIST_MENU_DOWN_COUNT[menu]
+        vertical_cmd = midi.FPT_Down if vertical_count > 0 else midi.FPT_Up
+        for _ in range(abs(vertical_count)):
+            transport.globalTransport(vertical_cmd, 1)
+        ui.right()
+        time.sleep(0.2)
+        vertical_count = _PLAYLIST_MENU_DOWN_COUNT[item]
+        vertical_cmd = midi.FPT_Down if vertical_count > 0 else midi.FPT_Up
+        for _ in range(abs(vertical_count)):
+            transport.globalTransport(vertical_cmd, 1)
+        Actions._enter()
+        if not last_visible:
+            ui.hideWindow(midi.widPianoRoll)
