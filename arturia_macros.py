@@ -25,7 +25,7 @@ DEFAULT_MACRO_MAP = {
     (REC_BUTTON, 2): Actions.name_next_empty_pattern,
     (REC_BUTTON, 3): Actions.rename_and_color,
     (REC_BUTTON, 4): Actions.clone_pattern,
-    (REC_BUTTON, 5): Actions.execute_list(Actions.random_color, Actions.sync_current_color),
+    (REC_BUTTON, 5): Actions.noop,
     (REC_BUTTON, 6): Actions.enter,
     (REC_BUTTON, 7): Actions.escape,
 
@@ -35,12 +35,12 @@ DEFAULT_MACRO_MAP = {
     (PLAY_BUTTON, 2): Actions.noop,
     (PLAY_BUTTON, 3): Actions.noop,
     (PLAY_BUTTON, 4): Actions.noop,
-    (PLAY_BUTTON, 5): Actions.noop,
-    (PLAY_BUTTON, 6): Actions.noop,
-    (PLAY_BUTTON, 7): Actions.noop,
+    (PLAY_BUTTON, 5): Actions.pianoroll_quick_legato,
+    (PLAY_BUTTON, 6): Actions.pianoroll_quick_quantize,
+    (PLAY_BUTTON, 7): Actions.pianoroll_quick_quantize_start_times,
 
     # Stop + Bank button
-    (STOP_BUTTON, 0): Actions.noop,
+    (STOP_BUTTON, 0): Actions.rewind_to_beginning,
     (STOP_BUTTON, 1): Actions.noop,
     (STOP_BUTTON, 2): Actions.noop,
     (STOP_BUTTON, 3): Actions.noop,

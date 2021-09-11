@@ -48,8 +48,7 @@ _MENU_LEFT_COUNT = {
 }
 
 # Number of times the up arrow needs to be clicked to reach the menu item.
-# NOTE: Do not use "down" arrow because some menus are dynamically populated. Pressing up skips the dynamic portion of
-# the menu.
+# Negative values means use down arrow. This might be needed to avoid dynamically populated menu items.
 _MENU_UP_COUNT = {
     # View menu
     'playlist': 25,
@@ -109,6 +108,27 @@ _MENU_UP_COUNT = {
     'last tweaked': 2,
     'clear log': 3,
     'dump score log to selected pattern': 4,
+}
+
+_PIANO_ROLL_MENU_DOWN_COUNT = {
+    'riff machine': 1,
+    'quick legato': 2,
+    'articulate': 3,
+    'quick quantize': 4,
+    'quick quantize start times': 5,
+    'quantize': 6,
+    'quick chop': 7,
+    'chop': 8,
+    'glue': 9,
+    'apreggiate': 10,
+    'strum': 11,
+    'flam': 12,
+    'claw machine': 13,
+    'limit': 14,
+    'flip': 15,
+    'randomize': 16,
+    'scale levels': 17,
+    'lfo': 18,
 }
 
 
@@ -398,6 +418,26 @@ class Actions:
         channels.setChannelColor(selected, rgb)
 
     @staticmethod
+    def rewind_to_beginning(channel_index):
+        """Rewind to start"""
+        transport.setSongPos(0)
+
+    @staticmethod
+    def pianoroll_quick_legato(channel_index):
+        """Quick legato"""
+        Actions._pianoroll_menu('quick legato')
+
+    @staticmethod
+    def pianoroll_quick_quantize(channel_index):
+        """Quick quantize"""
+        Actions._pianoroll_menu('quick quantize')
+
+    @staticmethod
+    def pianoroll_quick_quantize_start_times(channel_index):
+        """Qck quantize start"""
+        Actions._pianoroll_menu('quick quantize start times')
+
+    @staticmethod
     def noop(channel_index):
         """Not assigned"""
         # Do nothing
@@ -438,6 +478,8 @@ class Actions:
         # Save the visibility state of the channel rack and restore at the end.
         ui.closeActivePopupMenu()
         channel_rack_visible = ui.getVisible(midi.widChannelRack)
+        # Need to reset focus state of channel rack to ensure menu brought up
+        ui.hideWindow(midi.widChannelRack)
         ui.showWindow(midi.widChannelRack)
         ui.setFocused(midi.widChannelRack)
         transport.globalTransport(midi.FPT_Menu, 1)
@@ -465,3 +507,22 @@ class Actions:
             transport.globalTransport(vertical_cmd, 1)
         if restore_pattern:
             patterns.jumpToPattern(restore_pattern)
+
+    @staticmethod
+    def _pianoroll_menu(item):
+        ui.closeActivePopupMenu()
+        last_visible = ui.getVisible(midi.widPianoRoll)
+        # Need to reset focus state of piano roll to ensure item menu brought up
+        ui.hideWindow(midi.widPianoRoll)
+        ui.showWindow(midi.widPianoRoll)
+        ui.setFocused(midi.widPianoRoll)
+
+        transport.globalTransport(midi.FPT_ItemMenu, 1)
+        time.sleep(0.2)
+        for _ in range(_PIANO_ROLL_MENU_DOWN_COUNT[item]):
+            transport.globalTransport(midi.FPT_Down, 1)
+        Actions._enter()
+
+        if not last_visible:
+            ui.hideWindow(midi.widPianoRoll)
+
