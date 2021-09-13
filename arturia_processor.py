@@ -189,7 +189,7 @@ class ArturiaMidiProcessor:
         index = self.clip(1, patterns.patternCount(), patterns.patternNumber() + delta)
         if (config.ENABLE_PATTERN_NAV_WHEEL_CREATE_NEW_PATTERN and
                 patterns.patternNumber() + delta > patterns.patternCount()):
-            self._new_empty_pattern()
+            self._new_empty_pattern(linked=False)
         else:
             self._jump_and_sync_select_pattern(index)
 
@@ -671,12 +671,13 @@ class ArturiaMidiProcessor:
                 return suggested
         return '%s [%d]' % (name, patterns.patternCount() + 1)
 
-    def _new_empty_pattern(self):
+    def _new_empty_pattern(self, linked=True):
         pattern_id = patterns.patternCount() + 1
-        pattern_name = self._next_pattern_name()
-        color = channels.getChannelColor(channels.selectedChannel())
-        patterns.setPatternName(pattern_id, pattern_name)
-        patterns.setPatternColor(pattern_id, color)
+        if linked:
+            pattern_name = self._next_pattern_name()
+            color = channels.getChannelColor(channels.selectedChannel())
+            patterns.setPatternName(pattern_id, pattern_name)
+            patterns.setPatternColor(pattern_id, color)
         patterns.jumpToPattern(pattern_id)
         patterns.selectPattern(pattern_id, 1)
         return pattern_id
