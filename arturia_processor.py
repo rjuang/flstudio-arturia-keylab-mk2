@@ -187,7 +187,11 @@ class ArturiaMidiProcessor:
 
     def OnUpdatePattern(self, delta):
         index = self.clip(1, patterns.patternCount(), patterns.patternNumber() + delta)
-        self._jump_and_sync_select_pattern(index)
+        if (config.ENABLE_PATTERN_NAV_WHEEL_CREATE_NEW_PATTERN and
+                patterns.patternNumber() + delta > patterns.patternCount()):
+            self._new_empty_pattern()
+        else:
+            self._jump_and_sync_select_pattern(index)
 
     def OnUpdateChannel(self, delta):
         index = self.clip(0, channels.channelCount() - 1, channels.selectedChannel() + delta)

@@ -1,4 +1,7 @@
 # User-settable settings to alter behavior of keyboard
+import device
+
+TRUE_IF_ESSENTIAL_KEYBOARD = 'mkII' not in device.getName()
 
 # Set to True to allow drum pads to light up as a metronome indicator.
 ENABLE_PAD_METRONOME_LIGHTS = True
@@ -37,3 +40,7 @@ ENABLE_MIXER_SLIDERS_PICKUP_MODE = False
 # If True, changes to the controls also update the FL hint panel when appropriate Useful if you can't visually see the
 # display on keyboard and need feedback from FL Studio (i.e. plugin active but UI hidden).
 ENABLE_CONTROLS_FL_HINTS = True
+
+# If True, then enable turning nav wheel past last pattern to create a new pattern. (Default True for Essential
+# keyboards)
+ENABLE_PATTERN_NAV_WHEEL_CREATE_NEW_PATTERN = TRUE_IF_ESSENTIAL_KEYBOARD
