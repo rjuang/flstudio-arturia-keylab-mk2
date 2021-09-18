@@ -386,18 +386,22 @@ class Actions:
 
     @staticmethod
     def step_one_step(channel_index):
+        """Move 1-step"""
         Actions._move_song_pos(1, unit='steps')
 
     @staticmethod
     def step_back_one_step(channel_index):
+        """Move 1-step back"""
         Actions._move_song_pos(-1, unit='steps')
 
     @staticmethod
     def step_one_bar(channel_index):
+        """Move 1-bar"""
         Actions._move_song_pos(1, unit='bars')
 
     @staticmethod
     def step_back_one_bar(channel_index):
+        """Move 1-bar back"""
         Actions._move_song_pos(-1, unit='bars')
 
     @staticmethod
