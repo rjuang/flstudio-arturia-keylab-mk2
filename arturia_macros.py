@@ -25,7 +25,7 @@ DEFAULT_MACRO_MAP = {
     (REC_BUTTON, 2): Actions.name_next_empty_pattern,
     (REC_BUTTON, 3): Actions.rename_and_color,
     (REC_BUTTON, 4): Actions.clone_pattern,
-    (REC_BUTTON, 5): Actions.noop,
+    (REC_BUTTON, 5): Actions.clone_channel,
     (REC_BUTTON, 6): Actions.enter,
     (REC_BUTTON, 7): Actions.escape,
 
@@ -41,13 +41,13 @@ DEFAULT_MACRO_MAP = {
 
     # Stop + Bank button
     (STOP_BUTTON, 0): Actions.rewind_to_beginning,
-    (STOP_BUTTON, 1): Actions.toggle_select_all,
+    (STOP_BUTTON, 1): Actions.deselect_all,
     (STOP_BUTTON, 2): Actions.noop,
     (STOP_BUTTON, 3): Actions.noop,
-    (STOP_BUTTON, 4): Actions.noop,
-    (STOP_BUTTON, 5): Actions.noop,
-    (STOP_BUTTON, 6): Actions.noop,
-    (STOP_BUTTON, 7): Actions.noop,
+    (STOP_BUTTON, 4): Actions.step_back_one_bar,
+    (STOP_BUTTON, 5): Actions.step_one_bar,
+    (STOP_BUTTON, 6): Actions.step_back_one_step,
+    (STOP_BUTTON, 7): Actions.step_one_step,
 
     # Nav Right arrow + Bank button
     (RIGHT_BUTTON, 0): Actions.open_mixer_plugin,
