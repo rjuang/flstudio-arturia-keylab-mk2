@@ -250,16 +250,28 @@ class Actions:
     @staticmethod
     def channel_rack_up(unused_param_value):
         """Channelrack up"""
-        select = min(max(0, channels.channelNumber() - 1), channels.channelCount() - 1)
+        select = (channels.channelNumber() - 1) % channels.channelCount()
         channels.deselectAll()
         channels.selectChannel(select, 1)
 
     @staticmethod
     def channel_rack_down(unused_param_value):
         """Channelrack down"""
-        select = min(max(0, channels.channelNumber() + 1), channels.channelCount() - 1)
+        select = (channels.channelNumber() + 1) % channels.channelCount()
         channels.deselectAll()
         channels.selectChannel(select, 1)
+
+    @staticmethod
+    def mixer_track_left(unused_param_value):
+        """Prev mixer track"""
+        select = (mixer.trackNumber() - 1) % (mixer.trackCount() - 1)
+        mixer.setTrackNumber(select, midi.curfxScrollToMakeVisible)
+
+    @staticmethod
+    def mixer_track_right(unused_param_value):
+        """Next mixer track"""
+        select = (mixer.trackNumber() + 1) % (mixer.trackCount() - 1)
+        mixer.setTrackNumber(select, midi.curfxScrollToMakeVisible)
 
     @staticmethod
     def start_edison_recording(unused_param_value):
@@ -500,7 +512,57 @@ class Actions:
 
     @staticmethod
     def scrub_time_by_ticks(delta):
+        """Scrub time 1-tic"""
         Actions._move_song_pos(delta, unit='ticks')
+
+    @staticmethod
+    def scrub_active_channel(delta):
+        """Active channel"""
+        if delta < 0:
+            Actions.channel_rack_up(delta)
+        else:
+            Actions.channel_rack_down(delta)
+
+    @staticmethod
+    def scrub_active_mixer(delta):
+        """Active mixer"""
+        if delta < 0:
+            Actions.mixer_track_left(delta)
+        else:
+            Actions.mixer_track_right(delta)
+
+    @staticmethod
+    def scrub_left_right(delta):
+        """Left/Right"""
+        if delta < 0:
+            ui.left()
+        elif delta > 0:
+            ui.right()
+
+    @staticmethod
+    def scrub_up_down(delta):
+        """Up/Down"""
+        if delta < 0:
+            ui.up()
+        elif delta > 0:
+            ui.down()
+
+    @staticmethod
+    def strip_jog(delta):
+        """Strip jog"""
+        ui.stripJog(delta)
+
+    # TODO: Mixer plugin scrub
+    # TODO: Preset scrub
+
+    # TODO: Selection start scrub
+    # TODO: Selection end scrub
+
+    # TODO: Move selection scrub
+    # TODO: Vertical placement scrub
+
+
+
 
     # ---------------------- ACTION TRANSFORMERS  --------------------------
     @staticmethod
@@ -514,9 +576,18 @@ class Actions:
         _execute_all_fn.__doc__ = help
         return _execute_all_fn
 
+    @staticmethod
+    def scale_input_by(factor, fn):
+        """Scale the input of a function by a constant factor."""
+        def scaled_fn(delta):
+            fn(factor*delta)
+        return scaled_fn
+
     # ---------------------- HELPER METHODS  --------------------------
     @staticmethod
     def _num_effects(mixer_track_index):
+        if SCRIPT_VERSION < 8:
+            return 0
         cnt = 0
         for i in range(10):
             try:
@@ -583,3 +654,7 @@ class Actions:
 
         current_ticks = transport.getSongPos(midi.SONGLENGTH_ABSTICKS)
         transport.setSongPos(current_ticks + delta_ticks, midi.SONGLENGTH_ABSTICKS)
+
+        if PYKEYS_ENABLED:
+            # Center on the current time marker
+            Actions._fl_windows_shortcut("0", shift=1)

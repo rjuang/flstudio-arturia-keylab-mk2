@@ -435,15 +435,9 @@ class ArturiaMidiProcessor:
         idx = event.controlNum - 16
         delta = self._get_knob_delta(event)
         self._button_hold_action_committed = True
-        if self._button_mode == arturia_macros.LOOP_BUTTON or self._locked_mode == arturia_macros.LOOP_BUTTON:
-            if idx <= 7:
-                factor = 24.0 * (2.0 ** (idx - 3))
-                ui.stripJog(int(delta * factor))
-            elif idx == 8:
-                ui.stripJog(int(delta))
-        elif self._button_mode == arturia_macros.REC_BUTTON or self._locked_mode == arturia_macros.REC_BUTTON:
-            if idx <= 6:
-                self._horizontal_scroll(delta, power=idx)
+        if self._button_mode or self._locked_mode:
+            macro_id = idx + arturia_macros.ENCODER1
+            self._macros.on_macro_actions(self._button_mode | self._locked_mode, macro_id, delta)
         elif self._button_mode == 0:
             self._controller.encoders().ProcessKnobInput(idx, delta)
 
