@@ -414,22 +414,7 @@ class ArturiaMidiProcessor:
         if self._button_mode == arturia_macros.SAVE_BUTTON:
             self._change_playlist_track(delta)
         elif self._button_mode or self._locked_mode:
-            if self._button_mode == arturia_macros.LOOP_BUTTON or self._locked_mode == arturia_macros.LOOP_BUTTON:
-                transport.globalTransport(midi.FPT_HZoomJog, delta)
-                # Hack to adjust zoom so that it's centered on current time position.
-                transport.globalTransport(midi.FPT_Jog, 0)
-            elif self._button_mode == arturia_macros.REC_BUTTON or self._locked_mode == arturia_macros.REC_BUTTON:
-                self._horizontal_scroll(delta)
-            elif self._button_mode == arturia_macros.PLAY_BUTTON:
-                transport.globalTransport(midi.FPT_VZoomJog, delta)
-            elif self._button_mode == arturia_macros.STOP_BUTTON:
-                transport.globalTransport(midi.FPT_Jog2, delta)
-            elif self._button_mode == arturia_macros.LEFT_BUTTON:
-                delta = 0 if delta < 0 else 1
-                transport.globalTransport(midi.FPT_WindowJog, delta)
-            elif self._button_mode == arturia_macros.RIGHT_BUTTON:
-                delta = 0 if delta < 0 else 1
-                transport.globalTransport(midi.FPT_MixerWindowJog, delta)
+            self._macros.on_macro_actions(self._button_mode | self._locked_mode, arturia_macros.NAV_WHEEL, delta)
             self._button_hold_action_committed = True
         else:
             self._navigation.UpdateValue(delta)
@@ -937,7 +922,7 @@ class ArturiaMidiProcessor:
             debug.log('OnBankSelect', 'Dispatching macro. Mod=%d, index=%d' % (self._button_mode, bank_index),
                       event=event)
             channel_index = self._controller.encoders().GetBankChannelIndex(bank_index)
-            self._macros.on_channel_bank(self._button_mode | self._locked_mode, bank_index, channel_index)
+            self._macros.on_macro_actions(self._button_mode | self._locked_mode, bank_index, channel_index)
             self._button_hold_action_committed = True
         else:
             self._controller.encoders().ProcessBankSelection(bank_index)
