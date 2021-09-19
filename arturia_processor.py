@@ -21,6 +21,7 @@ from arturia_display import ArturiaDisplay
 from arturia_midi import MidiEventDispatcher
 from arturia_navigation import NavigationMode
 from arturia_leds import ArturiaLights
+from macro_actions import Actions
 
 SCRIPT_VERSION = general.getVersion()
 
@@ -568,6 +569,9 @@ class ArturiaMidiProcessor:
         debug.log('OnGlobalOut', 'Dispatched', event=event)
         self._punched = False
         transport.globalTransport(midi.FPT_PunchOut, midi.FPT_PunchOut, event.pmeFlags)
+        Actions.fl_windows_shortcut("right", ctrl=1)
+        Actions.fl_windows_shortcut("left", ctrl=1)
+
         if arrangement.selectionStart() < 0:
             self._controller.lights().SetLights({ArturiaLights.ID_GLOBAL_IN: ArturiaLights.LED_OFF})
 

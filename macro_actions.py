@@ -113,7 +113,7 @@ class Actions:
     def toggle_browser_visibility(unused_param_value):
         """Toggle browser"""
         if PYKEYS_ENABLED:
-            Actions._fl_windows_shortcut('f8', alt=1)
+            Actions.fl_windows_shortcut('f8', alt=1)
         else:
             if ui.getVisible(midi.widBrowser):
                 ui.hideWindow(midi.widBrowser)
@@ -142,7 +142,7 @@ class Actions:
     @staticmethod
     def close_all_plugin_windows(unused_param_value):
         """Close all plugin"""
-        Actions._fl_windows_shortcut('f12', alt=1)
+        Actions.fl_windows_shortcut('f12', alt=1)
 
     @staticmethod
     def cycle_active_window(unused_param_value):
@@ -152,7 +152,7 @@ class Actions:
     @staticmethod
     def name_first_empty_pattern(unused_param_value):
         """First empty pat"""
-        Actions._fl_windows_shortcut('f4', shift=1)
+        Actions.fl_windows_shortcut('f4', shift=1)
 
     @staticmethod
     def name_next_empty_pattern(unused_param_value):
@@ -168,24 +168,24 @@ class Actions:
     def toggle_script_output_visibility(unused_param_value):
         """Script output"""
         Actions._navigate_to_menu('view')
-        Actions._fl_windows_shortcut('s')
+        Actions.fl_windows_shortcut('s')
 
     @staticmethod
     def clone_pattern(unused_param_value):
         """Clone pattern"""
-        Actions._fl_windows_shortcut('c', ctrl=1, shift=1)
+        Actions.fl_windows_shortcut('c', ctrl=1, shift=1)
 
     @staticmethod
     def clone_channel(unused_param_value):
         """Clone channel"""
         ui.setFocused(midi.widChannelRack)
-        Actions._fl_windows_shortcut('c', alt=1)
+        Actions.fl_windows_shortcut('c', alt=1)
 
     @staticmethod
     def enter(unused_param_value):
         """Press enter"""
         if PYKEYS_ENABLED:
-            Actions._fl_windows_shortcut('return')
+            Actions.fl_windows_shortcut('return')
         else:
             ui.enter()
 
@@ -193,7 +193,7 @@ class Actions:
     def escape(unused_param_value):
         """Press escape"""
         if PYKEYS_ENABLED:
-            Actions._fl_windows_shortcut('escape')
+            Actions.fl_windows_shortcut('escape')
         else:
             ui.escape()
 
@@ -277,14 +277,14 @@ class Actions:
     def start_edison_recording(unused_param_value):
         """Start Edison Rec"""
         Actions._navigate_to_menu('tools')
-        Actions._fl_windows_shortcut('o')  # One click audio recording
-        Actions._fl_windows_shortcut('e')  # Edison
+        Actions.fl_windows_shortcut('o')  # One click audio recording
+        Actions.fl_windows_shortcut('e')  # Edison
 
     @staticmethod
     def random_pattern_generator(unused_param_value):
         """Random pattern"""
         Actions._navigate_to_menu('tools')
-        Actions._fl_windows_shortcut('r')
+        Actions.fl_windows_shortcut('r')
 
     @staticmethod
     def toggle_start_on_input(unused_param_value):
@@ -382,32 +382,32 @@ class Actions:
     @staticmethod
     def pianoroll_quick_legato(unused_param_value):
         """Quick legato"""
-        Actions._fl_windows_shortcut('l', ctrl=1)
+        Actions.fl_windows_shortcut('l', ctrl=1)
 
     @staticmethod
     def pianoroll_quick_quantize(unused_param_value):
         """Quick quantize"""
-        Actions._fl_windows_shortcut('q', ctrl=1)
+        Actions.fl_windows_shortcut('q', ctrl=1)
 
     @staticmethod
     def pianoroll_quick_quantize_start_times(unused_param_value):
         """Qck quantize start"""
-        Actions._fl_windows_shortcut('q', shift=1)
+        Actions.fl_windows_shortcut('q', shift=1)
 
     @staticmethod
     def duplicate(unused_param_value):
         """Duplicate"""
-        Actions._fl_windows_shortcut('b', ctrl=1)
+        Actions.fl_windows_shortcut('b', ctrl=1)
 
     @staticmethod
     def select_all(unused_param_value):
         """Select All"""
-        Actions._fl_windows_shortcut('a', ctrl=1)
+        Actions.fl_windows_shortcut('a', ctrl=1)
 
     @staticmethod
     def deselect_all(unused_param_value):
         """Toggle Select All"""
-        Actions._fl_windows_shortcut('d', ctrl=1)
+        Actions.fl_windows_shortcut('d', ctrl=1)
 
     @staticmethod
     def step_one_step(unused_param_value):
@@ -416,24 +416,45 @@ class Actions:
 
     @staticmethod
     def step_back_one_step(unused_param_value):
-        """Move 1-step back"""
+        """Step 1-step back"""
         Actions._move_song_pos(-1, unit='steps')
 
     @staticmethod
     def step_one_bar(unused_param_value):
-        """Move 1-bar"""
+        """Step 1-bar"""
         Actions._move_song_pos(1, unit='bars')
 
     @staticmethod
     def step_back_one_bar(unused_param_value):
-        """Move 1-bar back"""
+        """Step 1-bar back"""
         Actions._move_song_pos(-1, unit='bars')
+
+    @staticmethod
+    def move_left(unused_param_value):
+        """Move sel. left"""
+        Actions.fl_windows_shortcut('left', shift=1)
+
+    @staticmethod
+    def move_right(unused_param_value):
+        """Move sel. right"""
+        Actions.fl_windows_shortcut('right', shift=1)
+
+    @staticmethod
+    def move_up(unused_param_value):
+        """Move sel. up"""
+        Actions.fl_windows_shortcut('up', shift=1)
+
+    @staticmethod
+    def move_down(unused_param_value):
+        """Move sel. down"""
+        Actions.fl_windows_shortcut('down', shift=1)
 
     @staticmethod
     def noop(unused_param_value):
         """Not assigned"""
         # Do nothing
         pass
+
 
     # ---------------------- ACTIONS FOR KNOBS -----------------------------
     @staticmethod
@@ -552,6 +573,22 @@ class Actions:
         """Strip jog"""
         ui.stripJog(delta)
 
+    @staticmethod
+    def scrub_move_horizontal(delta):
+        """Move horizontally"""
+        if delta < 0:
+            Actions.move_left(delta)
+        else:
+            Actions.move_right(delta)
+
+    @staticmethod
+    def scrub_move_vertical(delta):
+        """Move vertically"""
+        if delta > 0:
+            Actions.move_up(delta)
+        else:
+            Actions.move_down(delta)
+
     # TODO: Mixer plugin scrub
     # TODO: Preset scrub
 
@@ -581,7 +618,19 @@ class Actions:
         """Scale the input of a function by a constant factor."""
         def scaled_fn(delta):
             fn(factor*delta)
+        # Make sure to preserve the help doc
+        scaled_fn.__doc__ == fn.__doc__
         return scaled_fn
+
+    @staticmethod
+    def repeated(fn):
+        """Repeat the function based on the absolute input value."""
+        def repeat_fn(delta):
+            for _ in range(abs(delta)):
+                fn(1 if delta > 0 else -1)
+        # Make sure to preserve the help doc
+        repeat_fn.__doc__ = fn.__doc__
+        return repeat_fn
 
     # ---------------------- HELPER METHODS  --------------------------
     @staticmethod
@@ -624,7 +673,7 @@ class Actions:
             transport.globalTransport(midi.FPT_Left, 1)
 
     @staticmethod
-    def _fl_windows_shortcut(key, shift=0, ctrl=0, alt=0):
+    def fl_windows_shortcut(key, shift=0, ctrl=0, alt=0):
         if not PYKEYS_ENABLED:
             return False
         if pykeys.platform() == 'win':
@@ -657,4 +706,4 @@ class Actions:
 
         if PYKEYS_ENABLED:
             # Center on the current time marker
-            Actions._fl_windows_shortcut("0", shift=1)
+            Actions.fl_windows_shortcut("0", shift=1)
