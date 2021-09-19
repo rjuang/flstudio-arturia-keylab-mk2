@@ -406,7 +406,7 @@ class Actions:
 
     @staticmethod
     def deselect_all(unused_param_value):
-        """Toggle Select All"""
+        """Deselect All"""
         Actions.fl_windows_shortcut('d', ctrl=1)
 
     @staticmethod
@@ -450,11 +450,35 @@ class Actions:
         Actions.fl_windows_shortcut('down', shift=1)
 
     @staticmethod
+    def add_time_marker(unused_param_value):
+        """Add time marker"""
+        Actions.fl_windows_shortcut('t', ctrl=1)
+
+    @staticmethod
+    def jump_next_time_marker(unused_param_value):
+        """Next marker"""
+        Actions.fl_windows_shortcut('keypad*', alt=1)
+
+    @staticmethod
+    def jump_prev_time_marker(unused_param_value):
+        """Prev marker"""
+        Actions.fl_windows_shortcut('keypad/', alt=1)
+
+    @staticmethod
+    def select_next_time_marker(unused_param_value):
+        """Select prev marker"""
+        Actions.fl_windows_shortcut('keypad*', alt=1, ctrl=1)
+
+    @staticmethod
+    def select_prev_time_marker(unused_param_value):
+        """Select next marker"""
+        Actions.fl_windows_shortcut('keypad/', alt=1, ctrl=1)
+
+    @staticmethod
     def noop(unused_param_value):
         """Not assigned"""
         # Do nothing
         pass
-
 
     # ---------------------- ACTIONS FOR KNOBS -----------------------------
     @staticmethod
@@ -597,8 +621,6 @@ class Actions:
 
     # TODO: Move selection scrub
     # TODO: Vertical placement scrub
-
-
 
 
     # ---------------------- ACTION TRANSFORMERS  --------------------------
