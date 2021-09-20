@@ -622,7 +622,6 @@ class Actions:
     # TODO: Move selection scrub
     # TODO: Vertical placement scrub
 
-
     # ---------------------- ACTION TRANSFORMERS  --------------------------
     @staticmethod
     def execute_list(*args_fn, help=None):
@@ -653,6 +652,51 @@ class Actions:
         # Make sure to preserve the help doc
         repeat_fn.__doc__ = fn.__doc__
         return repeat_fn
+
+    @staticmethod
+    def scrub(up_action, down_action, display=None):
+        """Returns a function that implements a scrub wheel action from two other actions"""
+        def scrub_fn(delta):
+            if delta < 0:
+                down_action(abs(delta))
+            elif delta > 0:
+                up_action(delta)
+        if display is None:
+            display = up_action.__doc__
+        scrub_fn.__doc__ = display
+        return scrub_fn
+
+    @staticmethod
+    def shortcut(shortcut_sequence, display=None):
+        """Returns a function that implements a shortcut action from a given shortcut string sequence.
+
+        The sequence is specified in the format "key", "mod1+key", "mod1+mod2+key", "mod1+mod2+...+modN+key".
+        For scenarios where the key is '+', please use '(+)' insteaed.
+        modN keys can be one of ['ctrl', 'alt', 'shift'].
+        Only one key can be specified. The sequence is case insensitive so capitalization does not matter.
+        """
+        shortcut_sequence = shortcut_sequence.replace('(+)', '[plus]').lower()
+        tokens = set(shortcut_sequence.split('+'))
+        ctrl = 'ctrl' in tokens
+        alt = 'alt' in tokens
+        shift = 'shift' in tokens
+        if display is None:
+            display = shortcut_sequence
+
+        # Determine the key
+        key = None
+        for t in tokens:
+            if t in ('ctrl', 'alt', 'shift'):
+                continue
+            t = t.replace('[plus]', '+')
+            key = t
+            break
+
+        print('Key: %s, ctrl=%d, alt=%d, shift=%d' % (key, ctrl, alt, shift))
+        def shortcut_fn(unused_param):
+            Actions.fl_windows_shortcut(key, ctrl=int(ctrl), alt=int(alt), shift=int(shift))
+        shortcut_fn.__doc__ = display
+        return shortcut_fn
 
     # ---------------------- HELPER METHODS  --------------------------
     @staticmethod

@@ -113,7 +113,7 @@ DEFAULT_MACRO_MAP = {
 
     # Nav Left arrow + Bank button
     (LEFT_BUTTON, 0): Actions.add_time_marker,
-    (LEFT_BUTTON, 1): Actions.noop,
+    (LEFT_BUTTON, 1): Actions.shortcut("ctrl+shift+h", display="Realign windows"),
     (LEFT_BUTTON, 2): Actions.noop,
     (LEFT_BUTTON, 3): Actions.noop,
     (LEFT_BUTTON, 4): Actions.noop,
