@@ -1,6 +1,7 @@
 """ Defines all constants and available actions that can be linked to a macro button. """
 import _random
 
+import arrangement
 import channels
 import general
 import midi
@@ -613,14 +614,102 @@ class Actions:
         else:
             Actions.move_down(delta)
 
+    @staticmethod
+    def scrub_selection_start_by_sixteenth_steps(delta):
+        """Adjust sel start"""
+        Actions._adjust_selection_range(start_delta=delta, factor=(_ticks_per_step() / 16.0))
+
+    @staticmethod
+    def scrub_selection_start_by_eighth_steps(delta):
+        """Adjust sel start"""
+        Actions._adjust_selection_range(start_delta=delta, factor=(_ticks_per_step() / 8.0))
+
+    @staticmethod
+    def scrub_selection_start_by_quarter_steps(delta):
+        """Adjust sel start"""
+        Actions._adjust_selection_range(start_delta=delta, factor=(_ticks_per_step() / 4.0))
+
+    @staticmethod
+    def scrub_selection_start_by_half_steps(delta):
+        """Adjust sel start"""
+        Actions._adjust_selection_range(start_delta=delta, factor=(_ticks_per_step() / 2.0))
+
+    @staticmethod
+    def scrub_selection_start_by_steps(delta):
+        """Adjust sel start"""
+        Actions._adjust_selection_range(start_delta=delta, factor=_ticks_per_step())
+
+    @staticmethod
+    def scrub_selection_start_by_eighth_bars(delta):
+        """Adjust sel start"""
+        Actions._adjust_selection_range(start_delta=delta, factor=_ticks_per_bar() / 8.0)
+
+    @staticmethod
+    def scrub_selection_start_by_quarter_bars(delta):
+        """Adjust sel start"""
+        Actions._adjust_selection_range(start_delta=delta, factor=_ticks_per_bar() / 4.0)
+
+    @staticmethod
+    def scrub_selection_start_by_half_bars(delta):
+        """Adjust sel start"""
+        Actions._adjust_selection_range(start_delta=delta, factor=_ticks_per_bar() / 2.0)
+
+    @staticmethod
+    def scrub_selection_start_by_bars(delta):
+        """Adjust sel start"""
+        Actions._adjust_selection_range(start_delta=delta, factor=_ticks_per_bar())
+
+
+    @staticmethod
+    def scrub_selection_end_by_sixteenth_steps(delta):
+        """Adjust sel end"""
+        Actions._adjust_selection_range(end_delta=delta, factor=(_ticks_per_step() / 16.0))
+
+    @staticmethod
+    def scrub_selection_end_by_eighth_steps(delta):
+        """Adjust sel end"""
+        Actions._adjust_selection_range(end_delta=delta, factor=(_ticks_per_step() / 8.0))
+
+    @staticmethod
+    def scrub_selection_end_by_quarter_steps(delta):
+        """Adjust sel end"""
+        Actions._adjust_selection_range(end_delta=delta, factor=(_ticks_per_step() / 4.0))
+
+    @staticmethod
+    def scrub_selection_end_by_half_steps(delta):
+        """Adjust sel end"""
+        Actions._adjust_selection_range(end_delta=delta, factor=(_ticks_per_step() / 2.0))
+
+    @staticmethod
+    def scrub_selection_end_by_steps(delta):
+        """Adjust sel end"""
+        Actions._adjust_selection_range(end_delta=delta, factor=_ticks_per_step())
+
+    @staticmethod
+    def scrub_selection_end_by_eighth_bars(delta):
+        """Adjust sel end"""
+        Actions._adjust_selection_range(end_delta=delta, factor=_ticks_per_bar() / 8.0)
+
+    @staticmethod
+    def scrub_selection_end_by_quarter_bars(delta):
+        """Adjust sel end"""
+        Actions._adjust_selection_range(end_delta=delta, factor=_ticks_per_bar() / 4.0)
+
+    @staticmethod
+    def scrub_selection_end_by_half_bars(delta):
+        """Adjust sel end"""
+        Actions._adjust_selection_range(end_delta=delta, factor=_ticks_per_bar() / 2.0)
+
+    @staticmethod
+    def scrub_selection_end_by_bars(delta):
+        """Adjust sel end"""
+        Actions._adjust_selection_range(end_delta=delta, factor=_ticks_per_bar())
+
     # TODO: Mixer plugin scrub
     # TODO: Preset scrub
 
     # TODO: Selection start scrub
     # TODO: Selection end scrub
-
-    # TODO: Move selection scrub
-    # TODO: Vertical placement scrub
 
     # ---------------------- ACTION TRANSFORMERS  --------------------------
     @staticmethod
@@ -773,3 +862,18 @@ class Actions:
         if PYKEYS_ENABLED:
             # Center on the current time marker
             Actions.fl_windows_shortcut("0", shift=1)
+
+    @staticmethod
+    def _adjust_selection_range(start_delta=0, end_delta=0, factor=1.0):
+        start_time = arrangement.selectionStart()
+        end_time = arrangement.selectionEnd()
+        if start_time < 0:
+            start_time = arrangement.currentTime(False)
+        start_time += int(start_delta * factor)
+        start_time = max(0, start_time)
+        if end_time < 0:
+            end_time = start_time + 1;
+        end_time += int(end_delta * factor)
+        end_time = max(0, end_time)
+        arrangement.liveSelection(start_time, False)
+        arrangement.liveSelection(end_time, True)
