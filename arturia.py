@@ -81,11 +81,17 @@ class ArturiaController:
         channel_name = channels.getChannelName(channels.selectedChannel())
         pattern_number = patterns.patternNumber()
         pattern_name = patterns.getPatternName(pattern_number)
-
+        update = (flags & (1024     # HW_Dirty_Patterns
+                           | 2048   # HW_Dirty_Tracks
+                           | 16384  # HW_Dirty_Names
+                           | 32     # HW_Dirty_FocusedWindow   (channel selection)
+                           )
+                  ) > 0
         self._paged_display.SetPageLines(
             'main',
             line1='[%d:%d] %s' % (channels.selectedChannel() + 1, pattern_number, channel_name),
-            line2='%s' % pattern_name)
+            line2='%s' % pattern_name,
+            update=update)
 
     def _TurnOffOctaveLights(self):
         # Disable blinking lights on octave keyboard

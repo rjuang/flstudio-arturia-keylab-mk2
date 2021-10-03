@@ -18,12 +18,12 @@ class ArturiaPagedDisplay:
         # Last timestamp in milliseconds in which the text was updated.
         self._last_update_ms = 0
 
-    def SetPageLines(self, page_name, line1=None, line2=None):
+    def SetPageLines(self, page_name, line1=None, line2=None, update=True):
         if line1 is not None:
             self._line1[page_name] = lambda: line1
         if line2 is not None:
             self._line2[page_name] = lambda: line2
-        if self._active_page == page_name:
+        if self._active_page == page_name and update:
             self._update_display(False)
 
     def SetPageLinesProvider(self, page_name, line1=None, line2=None):
