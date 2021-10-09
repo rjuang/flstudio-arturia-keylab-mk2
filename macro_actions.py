@@ -179,6 +179,7 @@ class Actions:
     @staticmethod
     def clone_channel(unused_param_value):
         """Clone channel"""
+        ui.showWindow(midi.widChannelRack)
         ui.setFocused(midi.widChannelRack)
         Actions.fl_windows_shortcut('c', alt=1)
 
@@ -261,6 +262,13 @@ class Actions:
         select = (channels.channelNumber() + 1) % channels.channelCount()
         channels.deselectAll()
         channels.selectChannel(select, 1)
+
+    @staticmethod
+    def current_channel_toggle_mute(unused_param_value):
+        """Toggle mute"""
+        current = channels.channelNumber()
+        if current >= 0:
+            channels.muteChannel(current)
 
     @staticmethod
     def mixer_track_left(unused_param_value):
@@ -388,7 +396,8 @@ class Actions:
     @staticmethod
     def pianoroll_quick_quantize(unused_param_value):
         """Quick quantize"""
-        Actions.fl_windows_shortcut('q', ctrl=1)
+        if ui.getVisible(midi.widPianoRoll) and ui.getFocused(midi.widPianoRoll):
+            Actions.fl_windows_shortcut('q', ctrl=1)
 
     @staticmethod
     def pianoroll_quick_quantize_start_times(unused_param_value):
@@ -453,6 +462,8 @@ class Actions:
     @staticmethod
     def add_time_marker(unused_param_value):
         """Add time marker"""
+        ui.showWindow(midi.widPianoRoll)
+        ui.setFocused(midi.widPianoRoll)
         Actions.fl_windows_shortcut('t', ctrl=1)
 
     @staticmethod
