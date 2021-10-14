@@ -30,6 +30,8 @@ def _select_pattern_named(name):
         if strip_pattern_name(patterns.getPatternName(i)) == name:
             patterns.jumpToPattern(i)
             return
+    # No pattern found
+    patterns.deselectAll()
 
 
 def set_playlist_track(track):

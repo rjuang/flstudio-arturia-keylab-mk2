@@ -7,10 +7,13 @@ import general
 import midi
 import mixer
 import patterns
+import playlist
 import transport
 import ui
 
 import time
+
+import arturia_playlist
 
 SCRIPT_VERSION = general.getVersion()
 
@@ -485,6 +488,23 @@ class Actions:
     def select_prev_time_marker(unused_param_value):
         """Select next marker"""
         Actions.fl_windows_shortcut('keypad/', alt=1, ctrl=1)
+
+    @staticmethod
+    def mute_current_playlist_track(unused_param_value):
+        """Mute playlist track"""
+        playlist.muteTrack(arturia_playlist.current_playlist_track())
+
+    @staticmethod
+    def playlist_track_next(unused_param_value):
+        """Next playlist track"""
+        next_track = min(playlist.trackCount(), arturia_playlist.current_playlist_track() + 1)
+        arturia_playlist.set_playlist_track(next_track)
+
+    @staticmethod
+    def playlist_track_prev(unused_param_value):
+        """Prev playlist track"""
+        prev_track = max(1, arturia_playlist.current_playlist_track() - 1)
+        arturia_playlist.set_playlist_track(prev_track)
 
     @staticmethod
     def noop(unused_param_value):

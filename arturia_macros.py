@@ -53,9 +53,9 @@ DEFAULT_MACRO_MAP = {
 
     # Play + Bank button
     (PLAY_BUTTON, 0): Actions.rewind_to_beginning,
-    (PLAY_BUTTON, 1): Actions.noop,
-    (PLAY_BUTTON, 2): Actions.noop,
-    (PLAY_BUTTON, 3): Actions.noop,
+    (PLAY_BUTTON, 1): Actions.mute_current_playlist_track,
+    (PLAY_BUTTON, 2): Actions.playlist_track_prev,
+    (PLAY_BUTTON, 3): Actions.playlist_track_next,
     (PLAY_BUTTON, 4): Actions.duplicate,
     (PLAY_BUTTON, 5): Actions.pianoroll_quick_legato,
     (PLAY_BUTTON, 6): Actions.pianoroll_quick_quantize,
