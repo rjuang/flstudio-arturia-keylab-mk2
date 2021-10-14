@@ -44,3 +44,9 @@ ENABLE_CONTROLS_FL_HINTS = True
 # If True, then enable turning nav wheel past last pattern to create a new pattern. (Default True for Essential
 # keyboards)
 ENABLE_PATTERN_NAV_WHEEL_CREATE_NEW_PATTERN = TRUE_IF_ESSENTIAL_KEYBOARD
+
+# Maximum mixer volume. Set to 120 if you like to overdrive the volume.
+# WARNING: You can overdrive this to a larger value, but you may blow out your speaker/headphones if you do not have
+# a volume limiter (like some studio monitors). So, do be careful.  I do not recommend values over 120, though it is
+# certainly possible.
+MAX_MIXER_VOLUME = 100

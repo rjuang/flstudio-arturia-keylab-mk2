@@ -83,7 +83,8 @@ class ArturiaInputControls:
         if incremental:
             value = channels.incEventValue(event_id, value, 0.01)
         else:
-            value = ArturiaInputControls._to_rec_value(value, limit=12800)
+            max_val = int(12800 * config.MAX_MIXER_VOLUME / 100.0)
+            value = ArturiaInputControls._to_rec_value(value, limit=max_val)
 
         general.processRECEvent(
             event_id, value, midi.REC_UpdateValue | midi.REC_UpdatePlugLabel | midi.REC_ShowHint
@@ -219,10 +220,10 @@ class ArturiaInputControls:
 
         if self._is_slider_picked_up(track_index, value):
             self._set_mixer_param(midi.REC_Mixer_Vol, value, track_index=track_index)
-            volume = int((value / 127.0) * 100.0)
+            volume = int((value / 127.0) * config.MAX_MIXER_VOLUME)
             self._display_hint(track_name, 'Volume: %d%%' % volume)
         else:
-            volume = int(mixer.getTrackVolume(track_index) * 100.0)
+            volume = int(mixer.getTrackVolume(track_index) * config.MAX_MIXER_VOLUME)
             self._display_hint(track_name, 'Volume: %d%% LOCK' % volume)
 
     def _process_plugin_slider_event(self, index, value):
