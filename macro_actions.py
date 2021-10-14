@@ -465,8 +465,12 @@ class Actions:
     @staticmethod
     def add_time_marker(unused_param_value):
         """Add time marker"""
-        ui.showWindow(midi.widPianoRoll)
-        ui.setFocused(midi.widPianoRoll)
+        window_active = ui.getVisible(midi.widPianoRoll) and ui.getFocused(midi.widPianoRoll)
+        window_active |= ui.getVisible(midi.widPlaylist) and ui.getFocused(midi.widPlaylist)
+        if not window_active:
+            window = midi.widPlaylist if transport.getLoopMode() else midi.widPianoRoll
+            ui.showWindow(window)
+            ui.setFocused(window)
         Actions.fl_windows_shortcut('t', ctrl=1)
 
     @staticmethod
