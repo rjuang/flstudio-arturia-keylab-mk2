@@ -265,7 +265,7 @@ class Actions:
 
     @staticmethod
     def current_channel_toggle_mute(unused_param_value):
-        """Toggle mute"""
+        """Mute channel"""
         current = channels.channelNumber()
         if current >= 0:
             channels.muteChannel(current)
