@@ -69,7 +69,13 @@ def OnShortPressDrumPad(event):
         global _sustain_enabled
         log('midi', 'Play. short press detected for %s. Sustain=%s' % (str(note), _sustain_enabled))
         if not _recorder.Play(note, loop=_sustain_enabled):
-            channels.midiNoteOn(channels.selectedChannel(), note, _fallback_pad_values[note])
+            if config.ENABLE_MPC_STYLE_PADS:
+                index = note - 0x24
+                if index < channels.channelCount():
+                    # 0x3C corresponds to middle C
+                    channels.midiNoteOn(index, 0x3C, _fallback_pad_values[note])
+            else:
+                channels.midiNoteOn(channels.selectedChannel(), note, _fallback_pad_values[note])
 
 
 def OnLongPressDrumPad(note):

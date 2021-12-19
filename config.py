@@ -53,3 +53,13 @@ MAX_MIXER_VOLUME = 100
 
 # If True, then long pressing the left/right nav will toggle visibility of mixer/channel rack.
 ENABLE_NAV_BUTTON_TOGGLE_VISIBILITY = True
+
+# If True, the pads will assign to the channel rack tracks as follows:
+#
+#  1   2   3   4
+#  5   6   7   8
+#  9  10  11  12
+# 13  14  15  16
+#
+# This is useful if you prefer an MPC style assignment where the channel rack tracks contain sample chops.
+ENABLE_MPC_STYLE_PADS = False
