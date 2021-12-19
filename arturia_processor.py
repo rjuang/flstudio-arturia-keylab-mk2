@@ -746,8 +746,10 @@ class ArturiaMidiProcessor:
             self._button_hold_action_committed = False
         else:
             self._button_mode &= ~arturia_macros.LEFT_BUTTON
-        self._detect_long_press(event, self.OnNavigationLeftShortPress, self.OnNavigationLeftLongPress,
-                                duration_ms=1000)
+
+        if config.ENABLE_NAV_BUTTON_TOGGLE_VISIBILITY:
+            self._detect_long_press(event, self.OnNavigationLeftShortPress, self.OnNavigationLeftLongPress,
+                                    duration_ms=1000)
 
     def OnNavigationRight(self, event):
         if self._is_pressed(event):
@@ -766,8 +768,10 @@ class ArturiaMidiProcessor:
             self._button_hold_action_committed = False
         else:
             self._button_mode &= ~arturia_macros.RIGHT_BUTTON
-        self._detect_long_press(event, self.OnNavigationRightShortPress, self.OnNavigationRightLongPress,
-                                duration_ms=1000)
+
+        if config.ENABLE_NAV_BUTTON_TOGGLE_VISIBILITY:
+            self._detect_long_press(event, self.OnNavigationRightShortPress, self.OnNavigationRightLongPress,
+                                    duration_ms=1000)
 
     def OnNavigationLeftShortPress(self, event):
         debug.log('OnNavigationLeftShortPress', 'Dispatched', event=event)

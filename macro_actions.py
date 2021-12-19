@@ -644,7 +644,7 @@ class Actions:
     @staticmethod
     def scrub_move_vertical(delta):
         """Move vertically"""
-        if delta > 0:
+        if delta < 0:
             Actions.move_up(delta)
         else:
             Actions.move_down(delta)

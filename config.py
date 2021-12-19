@@ -50,3 +50,6 @@ ENABLE_PATTERN_NAV_WHEEL_CREATE_NEW_PATTERN = TRUE_IF_ESSENTIAL_KEYBOARD
 # a volume limiter (like some studio monitors). So, do be careful.  I do not recommend values over 120, though it is
 # certainly possible.
 MAX_MIXER_VOLUME = 100
+
+# If True, then long pressing the left/right nav will toggle visibility of mixer/channel rack.
+ENABLE_NAV_BUTTON_TOGGLE_VISIBILITY = True
