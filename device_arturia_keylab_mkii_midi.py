@@ -47,6 +47,7 @@ _fallback_pad_values = {}
 _longpress_status = {}
 # Drop notes that match the specified critiria
 _drop_note = None
+_interscript_idle_disabled = False
 
 
 def OnInit():
@@ -101,7 +102,20 @@ def BlinkLight(note):
 
 
 def OnIdle():
+    processIdle(disable_interscript_idle=True)
+
+
+def processIdle(disable_interscript_idle=False):
+    global _interscript_idle_disabled
     _scheduler.Idle()
+
+    if disable_interscript_idle and not _interscript_idle_disabled:
+        log('midi', 'Disabling interscript idle.')
+        _interscript_idle_disabled = True
+        arturia_midi.dispatch_message_to_other_scripts(
+            arturia_midi.INTER_SCRIPT_STATUS_BYTE,
+            arturia_midi.INTER_SCRIPT_DATA1_UPDATE_STATE,
+            arturia_midi.INTER_SCRIPT_DATA2_STATE_IDLE_AVAILABLE)
 
 
 def OnMidiMsg(event):
@@ -162,7 +176,7 @@ def OnMidiMsg(event):
         elif event.data1 == arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD and event.data2 in _buttons_held:
             _buttons_held.remove(event.data2)
         elif event.data1 == arturia_midi.INTER_SCRIPT_DATA1_IDLE_CMD:
-            OnIdle()
+            processIdle()
         # All inter-cmd messages should be marked handled to ensure they do not contribute to influencing FL Studio
         # state
         event.handled = True
