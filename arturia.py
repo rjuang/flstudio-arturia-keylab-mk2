@@ -1,5 +1,6 @@
 import arrangement
 import arturia_leds
+import arturia_midi
 import channels
 import general
 import midi
@@ -32,6 +33,7 @@ class ArturiaController:
         self._metronome = VisualMetronome(self._lights)
         self._encoders = ArturiaInputControls(self._paged_display, self._lights)
         self._last_send = 0
+        self._send_interscript_idle = True
 
     def display(self):
         return self._display
@@ -105,7 +107,16 @@ class ArturiaController:
     def RefreshDisplay(self):
         self._paged_display.Refresh()
 
+    def DisableInterscriptIdle(self):
+        self._send_interscript_idle = False
+
     def Idle(self):
         self._scheduler.Idle()
+        if self._send_interscript_idle:
+            arturia_midi.dispatch_message_to_other_scripts(
+                arturia_midi.INTER_SCRIPT_STATUS_BYTE,
+                arturia_midi.INTER_SCRIPT_DATA1_IDLE_CMD,
+                0)
+
         if arturia_leds.ESSENTIAL_KEYBOARD:
             self._TurnOffOctaveLights()

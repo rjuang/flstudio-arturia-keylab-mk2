@@ -161,7 +161,8 @@ def OnMidiMsg(event):
                     _recorder.StopPlaying()
         elif event.data1 == arturia_midi.INTER_SCRIPT_DATA1_BTN_UP_CMD and event.data2 in _buttons_held:
             _buttons_held.remove(event.data2)
-
+        elif event.data1 == arturia_midi.INTER_SCRIPT_DATA1_IDLE_CMD:
+            OnIdle()
         # All inter-cmd messages should be marked handled to ensure they do not contribute to influencing FL Studio
         # state
         event.handled = True

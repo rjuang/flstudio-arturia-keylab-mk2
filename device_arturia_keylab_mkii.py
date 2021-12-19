@@ -34,7 +34,7 @@ def OnInit():
     ui.setHintMsg('Script version: %d' % version.CHANGE_DATE)
 
 def OnDeInit():
-    print('Unloaading plugin...')
+    print('Unloading plugin...')
 
 def OnIdle():
     _controller.Idle()
@@ -53,6 +53,8 @@ def OnMidiMsg(event):
                 _processor.NotifyPadRecordingState(True)
             elif event.data2 == arturia_midi.INTER_SCRIPT_DATA2_STATE_PAD_RECORD_STOP:
                 _processor.NotifyPadRecordingState(False)
+            elif event.data2 == arturia_midi.INTER_SCRIPT_DATA2_STATE_IDLE_AVAILABLE:
+                _controller.DisableInterscriptIdle()
         event.handled = True
     elif event.status == arturia_midi.PAYLOAD_STATUS_BYTE:
         _payload_buffer.append(event.data1)
