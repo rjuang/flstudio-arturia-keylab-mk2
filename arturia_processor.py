@@ -863,7 +863,7 @@ class ArturiaMidiProcessor:
             self._macros.on_macro_actions(self._button_mode | self._locked_mode, bank_index, channel_index)
             self._button_hold_action_committed = True
         else:
-            self._controller.encoders().ProcessBankSelection(bank_index)
+            self._controller.encoders().ProcessBankSelection(event, bank_index)
 
     def OnStartOrEndSliderEvent(self, event):
         debug.log('OnStartOrEndSliderEvent', 'Dispatched', event=event)

@@ -265,7 +265,7 @@ class ArturiaInputControls:
         param_id = midi.REC_Mixer_Pan if self._mixer_knobs_panning else midi.REC_Mixer_SS
         self._set_mixer_param(param_id, delta, track_index=track_index, incremental=True)
 
-    def _process_plugin_button_event(self, index):
+    def _process_plugin_button_event(self, event, index):
         status = 176 + self._current_index_plugin
         data1 = 22 + index
         data2 = self._update_toggle_value(self._current_index_plugin, index)
@@ -275,6 +275,11 @@ class ArturiaInputControls:
                            '%02X %02X %02X' % (status, data1, data2),
                            fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
         self._update_lights()
+        # Modify event so that it lines up with the sent message
+        event.data1 = data1
+        event.data2 = data2
+        event.status = status
+        event.handled = False
 
     def ProcessSliderInput(self, event, slider_index, value):
         if self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW:
@@ -283,11 +288,11 @@ class ArturiaInputControls:
             self._process_plugin_slider_event(event, slider_index, value)
         return self
 
-    def ProcessBankSelection(self, button_index):
+    def ProcessBankSelection(self, event, button_index):
         if self._current_mode != ArturiaInputControls.INPUT_MODE_CHANNEL_PLUGINS:
             self._select_one_channel(self.GetBankChannelIndex(button_index))
         else:
-            self._process_plugin_button_event(button_index)
+            self._process_plugin_button_event(event, button_index)
 
     def GetBankChannelIndex(self, button_index):
         return button_index + (8 * self._current_index_mixer)
