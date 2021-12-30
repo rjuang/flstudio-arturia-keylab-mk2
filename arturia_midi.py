@@ -65,6 +65,7 @@ class MidiEventDispatcher:
         processed = False
         if key in self._dispatch_map:
             callback_fn, filter_fn = self._dispatch_map[key]
+            event.handled = True
             if filter_fn(event):
                 callback_fn(event)
                 processed = True

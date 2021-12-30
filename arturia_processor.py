@@ -375,11 +375,9 @@ class ArturiaMidiProcessor:
         self._midi_command_dispatcher.Dispatch(event)
 
     def OnKnobEvent(self, event):
-        event.handled = False
         self._knob_dispatcher.Dispatch(event)
 
     def OnSliderEvent(self, event):
-        event.handled = False
         slider_index = event.status - event.midiId
         slider_value = event.controlVal
 
@@ -389,7 +387,7 @@ class ArturiaMidiProcessor:
                 slider_value = 127
 
         debug.log('OnSliderEvent', 'Slider %d = %d' % (slider_index, slider_value), event=event)
-        self._controller.encoders().ProcessSliderInput(slider_index, slider_value)
+        self._controller.encoders().ProcessSliderInput(event, slider_index, slider_value)
 
     @staticmethod
     def _get_knob_delta(event):
@@ -435,7 +433,7 @@ class ArturiaMidiProcessor:
             macro_id = idx + arturia_macros.ENCODER1
             self._macros.on_macro_actions(self._button_mode | self._locked_mode, macro_id, delta)
         elif self._button_mode == 0:
-            self._controller.encoders().ProcessKnobInput(idx, delta)
+            self._controller.encoders().ProcessKnobInput(event, idx, delta)
 
     def OnTransportsBack(self, event):
         debug.log('OnTransportsBack', 'Dispatched', event=event)

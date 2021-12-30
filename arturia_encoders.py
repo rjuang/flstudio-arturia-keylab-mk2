@@ -185,11 +185,11 @@ class ArturiaInputControls:
         self._display_hint('Setting MIDI Ch', 'To: %2d' % (self._current_index_plugin + 1),
                            fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
 
-    def ProcessKnobInput(self, knob_index, delta):
+    def ProcessKnobInput(self, event, knob_index, delta):
         if self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW:
             self._process_knobs_mixer_track(knob_index, delta)
         else:
-            self._process_plugin_knob_event(knob_index, delta)
+            self._process_plugin_knob_event(event, knob_index, delta)
         return self
 
     def _is_slider_picked_up(self, track_index, value):
@@ -226,7 +226,7 @@ class ArturiaInputControls:
             volume = int(mixer.getTrackVolume(track_index) * config.MAX_MIXER_VOLUME)
             self._display_hint(track_name, 'Volume: %d%% LOCK' % volume)
 
-    def _process_plugin_slider_event(self, index, value):
+    def _process_plugin_slider_event(self, event, index, value):
         status = 176 + self._current_index_plugin
         data1 = 35 + index
         data2 = value
@@ -236,8 +236,13 @@ class ArturiaInputControls:
         self._display_hint('Slider %d Ch: %2d' % (index + 1, self._current_index_plugin + 1),
                            '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2),
                            fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
+        # Modify event so that it lines up with the sent message
+        event.data1 = data1
+        event.data2 = data2
+        event.status = status
+        event.handled = False
 
-    def _process_plugin_knob_event(self, index, delta):
+    def _process_plugin_knob_event(self, event, index, delta):
         status = 176 + self._current_index_plugin
         data1 = 67 + index
         data2 = self._update_knob_value(status, data1, delta)
@@ -247,6 +252,11 @@ class ArturiaInputControls:
         self._display_hint('Enc. %d  Ch: %2d' % (index + 1, self._current_index_plugin + 1),
                            '%3d%%  [%02X %02X %02X]' % (pretty_value, status, data1, data2),
                            fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
+        # Modify event so that it lines up with the sent message
+        event.data1 = data1
+        event.data2 = data2
+        event.status = status
+        event.handled = False
 
     def _process_knobs_mixer_track(self, knob_index, delta):
         track_index = (self._current_index_mixer * 8 + knob_index) + 1
@@ -266,11 +276,11 @@ class ArturiaInputControls:
                            fl_hint=config.ENABLE_CONTROLS_FL_HINTS)
         self._update_lights()
 
-    def ProcessSliderInput(self, slider_index, value):
+    def ProcessSliderInput(self, event, slider_index, value):
         if self._current_mode == ArturiaInputControls.INPUT_MODE_MIXER_OVERVIEW:
             self._process_sliders_track_volume(slider_index, value)
         else:
-            self._process_plugin_slider_event(slider_index, value)
+            self._process_plugin_slider_event(event, slider_index, value)
         return self
 
     def ProcessBankSelection(self, button_index):
