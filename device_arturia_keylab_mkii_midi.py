@@ -61,6 +61,7 @@ def OnRefresh(flags):
 def OnShortPressDrumPad(event):
     global _pad_recording_task
     note = event.data1
+    velocity = event.data2
     if _recorder.IsRecording():
         log('midi', 'Stop Recording. short press detected for %s' % str(note))
         _recorder.StopRecording()
@@ -74,7 +75,7 @@ def OnShortPressDrumPad(event):
                 index = note - 0x24
                 if index < channels.channelCount():
                     # 0x3C corresponds to middle C
-                    channels.midiNoteOn(index, 0x3C, _fallback_pad_values[note])
+                    channels.midiNoteOn(index, 0x3C, velocity)
             else:
                 channels.midiNoteOn(channels.selectedChannel(), note, _fallback_pad_values[note])
 
