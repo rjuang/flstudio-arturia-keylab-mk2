@@ -1,11 +1,13 @@
 from arturia_midi import send_to_device
 
+import config
 import device
 import time
 import utils
 
 ESSENTIAL_KEYBOARD = 'mkII' not in device.getName()
 MKII_88_KEYBOARD = 'mkII 88' in device.getName()
+MKII_49_KEYBOARD = 'mkII 49' in device.getName()
 
 
 class ArturiaLights:
@@ -197,8 +199,8 @@ class ArturiaLights:
     def getPadLedId(button_id):
         MIDI_DRUM_PAD_DATA1_MIN = 36
 
-        if MKII_88_KEYBOARD:
-            # On 88 keyboard, the button IDs are flipped:
+        if MKII_88_KEYBOARD or MKII_49_KEYBOARD or config.INVERT_LED_LAYOUT:
+            # On 49/88 keyboard, the button IDs are flipped:
             # 0x30, 0x31, 0x32, 0x33
             # 0x2C, 0x2D, 0x2E, 0x2F
             # 0x28, 0x29, 0x30, 0x31

@@ -200,4 +200,4 @@ def OnMidiMsg(event):
 
 
 def OnDeInit():
-    print('Unloaading plugin...')
+    print('Unloading plugin...')
