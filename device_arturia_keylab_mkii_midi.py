@@ -78,6 +78,15 @@ def OnShortPressDrumPad(event):
                     channels.midiNoteOn(index, 0x3C, velocity)
             else:
                 channels.midiNoteOn(channels.selectedChannel(), note, _fallback_pad_values[note])
+    elif event.status == 137:
+        if not _recorder.HasRecording(note):
+            if config.ENABLE_MPC_STYLE_PADS:
+                index = note - 0x24
+                if index < channels.channelCount():
+                    # 0x3C corresponds to middle C
+                    channels.midiNoteOn(index, 0x3C, 0)
+            else:
+                channels.midiNoteOn(channels.selectedChannel(), note, 0)
 
 
 def OnLongPressDrumPad(note):
@@ -87,6 +96,14 @@ def OnLongPressDrumPad(note):
         _recorder.StopRecording()
     else:
         log('midi', 'Start Recording. Long press detected for %s' % str(note))
+        if config.ENABLE_MPC_STYLE_PADS:
+            index = note - 0x24
+            if index < channels.channelCount():
+                # 0x3C corresponds to middle C
+                channels.midiNoteOn(index, 0x3C, 0)
+        else:
+            channels.midiNoteOn(channels.selectedChannel(), note, 0)
+
         _drop_note = note
         _recorder.StartRecording(note)
         _pad_recording_led = False
@@ -132,7 +149,9 @@ def OnMidiMsg(event):
             event.handled = True
             if event.status == 153:
                 _fallback_pad_values[event.data1] = event.data2
-            if note not in _longpress_status and REC_BUTTON_ID not in _buttons_held:
+            if (note not in _longpress_status
+                    and REC_BUTTON_ID not in _buttons_held
+                    and not config.ENABLE_LONG_PRESS_SUSTAIN_ON_PADS):
                 log('midi', 'Schedule long press detection for %s' % str(note))
                 _longpress_status[note] = _scheduler.ScheduleTask(lambda: OnLongPressDrumPad(note), delay=1000)
             if REC_BUTTON_ID in _buttons_held:

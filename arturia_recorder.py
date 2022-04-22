@@ -88,6 +88,9 @@ class Recorder:
         self._looping.clear()
         self._stop_requested = True
 
+    def HasRecording(self, key):
+        return self._savedata.ContainsNonEmpty(str(key))
+
     def Play(self, key, loop=False):
         log('recorder', 'Playing drum pattern for %s. Loop=%s' % (key, loop))
         self._stop_requested = False

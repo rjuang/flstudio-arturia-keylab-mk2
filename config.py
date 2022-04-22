@@ -64,5 +64,10 @@ ENABLE_NAV_BUTTON_TOGGLE_VISIBILITY = True
 # This is useful if you prefer an MPC style assignment where the channel rack tracks contain sample chops.
 ENABLE_MPC_STYLE_PADS = False
 
+# If enabled, this will switch the behavior of long pressing on the pads to sustaining the note being played. This
+# is particularly useful for MPC style pads that play loops.
+# Re-mapping a pad note will still work by holding the record button and pressing the pad button.
+ENABLE_LONG_PRESS_SUSTAIN_ON_PADS = False
+
 # If True, this will treat the pad LED layout the same as 88-key which is inverted.
 INVERT_LED_LAYOUT = False

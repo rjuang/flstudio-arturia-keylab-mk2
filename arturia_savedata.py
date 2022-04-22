@@ -68,3 +68,5 @@ class SaveData:
     def Put(self, key, int_values):
         self._datastore[key] = int_values
 
+    def ContainsNonEmpty(self, key):
+        return key in self._datastore and self._datastore[key]
