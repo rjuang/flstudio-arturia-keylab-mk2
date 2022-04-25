@@ -40,7 +40,7 @@ class ArturiaPagedDisplay:
             reset_scroll = page_name != self._ephemeral_page
             self._ephemeral_page = page_name
             self._page_expiration_time_ms = ArturiaDisplay.time_ms() + expires
-            self._scheduler.ScheduleTask(self.Refresh, delay=expires)
+            self._scheduler.ScheduleTask(lambda: self.Refresh(), delay=expires)
         else:
             self._active_page = page_name
         self._update_display(reset_scroll)

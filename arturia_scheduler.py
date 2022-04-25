@@ -1,4 +1,5 @@
 import _heapq
+import _random
 import time
 
 
@@ -12,11 +13,20 @@ class Scheduler:
     """
     def __init__(self):
         self._tasks_pq = []
+        self._random = _random.Random()
 
     def ScheduleTask(self, task, delay=0):
         time_ms = time.monotonic() * 1000
-        # Pick a number that will break the tie so that we don't compare the last element of the tuple
-        entry = (time_ms + delay, len(self._tasks_pq), task)
+        # Assumption is that there are no ties. Otherwise, comparing last element of the tuple will lead to crashes.
+        entry = (time_ms + delay,
+                 len(self._tasks_pq),
+                 # Add some random numbers so that one of these will break the tie
+                 int(self._random.random() * 16777215),
+                 int(self._random.random() * 16777215),
+                 int(self._random.random() * 16777215),
+                 int(self._random.random() * 16777215),
+                 int(self._random.random() * 16777215),
+                 task)
         _heapq.heappush(self._tasks_pq, entry)
         return entry
 
