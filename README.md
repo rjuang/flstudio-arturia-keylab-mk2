@@ -37,7 +37,7 @@ files.
 
 ### For Macs ###
 
-Follow the tips and instructions [here](https://www.arturia.com/faq/keylabmkii/keylab-mkii-tips-tricks) for setting
+Follow the tips and instructions [here](https://support.arturia.com/hc/en-us/articles/4405748362002-KeyLab-MkII-Tips-Tricks) for setting
 up the ports correctly.  Scroll down to "FL Studio" section at the very bottom of the link.
 
 In the instructions, instead of selecting "Mackie Control Universal" select my script
@@ -47,7 +47,7 @@ Note that there will be another script called `Arturia Keylab mkII (MIDI)`. This
 Analog Lab. You can set `Keylab mkII XX MIDI` to this script. 
 
 ## For Windows ##
-Follow the tips and instructions [here](https://www.arturia.com/faq/keylabessential/keylab-essential-tips-tricks) for
+Follow the tips and instructions [here](https://support.arturia.com/hc/en-us/articles/4405741358738-KeyLab-Essential-Tips-Tricks) for
 setting up the ports correctly. These are instructions for Keylab essential but the setup is the same as Keylab mkII.
 I reference this one because it has a screenshot from a Windows setup.
 
